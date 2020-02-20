@@ -1,6 +1,6 @@
 package com.pp.proxied.utilities.reporting;
 
-import internal.atlaslite.jcce.convenience.Duet;
+import com.pp.proxied.utilities.util.GenericDouble;
 
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -52,7 +52,7 @@ public class ActiveTenantsVisitor
 	public static boolean isActiveOn(LedgerEntryVisitor ledgerEntryVisitor, TenantEntry tenantEntry, Calendar date)
 		throws InvalidLedgerException
 	{
-		Duet<LedgerEntryVisitor, LedgerEntryVisitor> duetDates = LedgerEntryVisitor.getAtDate(ledgerEntryVisitor, date);
+		GenericDouble<LedgerEntryVisitor, LedgerEntryVisitor> duetDates = LedgerEntryVisitor.getAtDate(ledgerEntryVisitor, date);
 		if (duetDates.first == duetDates.second)
 		{	// Exact date found
 			return ((ActiveTenantsVisitor)duetDates.first).isActive(tenantEntry);
@@ -134,7 +134,7 @@ public class ActiveTenantsVisitor
 	public void getAllTenantsActiveDuring(Calendar startDate, Calendar endDate, List<TenantEntry> lDestination)
 	{
 		Set<TenantEntry> setResult = new HashSet<TenantEntry>();
-		Duet<LedgerEntryVisitor, LedgerEntryVisitor> duetDates = getAtDate(this, startDate);
+		GenericDouble<LedgerEntryVisitor, LedgerEntryVisitor> duetDates = getAtDate(this, startDate);
 		if (null != duetDates.first)
 		{
 			LedgerEntryVisitor currentActiveTenantVisitor = duetDates.first;

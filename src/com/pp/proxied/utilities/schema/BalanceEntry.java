@@ -3,9 +3,8 @@ package com.pp.proxied.utilities.schema;
 import java.security.InvalidParameterException;
 import java.text.ParseException;
 
-import internal.atlaslite.jcce.util.HashCodeUtil;
-import internal.atlaslite.jcce.util.ObjectUtil;
-import internal.atlaslite.jcce.util.StringUtil;
+import com.pp.proxied.utilities.util.ObjectUtil;
+import com.pp.proxied.utilities.util.StringUtil;
 
 public class BalanceEntry
 	extends Entry
@@ -76,11 +75,11 @@ public class BalanceEntry
 		int iCode = super.hashCode();
 		if (null != getTenantName())
 		{
-			iCode = HashCodeUtil.hash(iCode, getTenantName());
+			iCode = iCode * 37 + getTenantName().hashCode();
 		}
 		if (null != getBalance())
 		{
-			iCode = HashCodeUtil.hash(iCode, getBalance());
+			iCode = iCode * 37 + getBalance().hashCode();
 		}
 		return iCode;
 	}

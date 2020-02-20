@@ -16,8 +16,8 @@ import com.pp.proxied.utilities.schema.RemoveEntry;
 import com.pp.proxied.utilities.schema.TenantEntry;
 import com.pp.proxied.utilities.schema.Verb;
 
-import internal.atlaslite.jcce.convenience.Duet;
-import internal.atlaslite.jcce.util.StringUtil;
+import com.pp.proxied.utilities.util.GenericDouble;
+import com.pp.proxied.utilities.util.StringUtil;
 
 public class Ledger
 {
@@ -87,9 +87,9 @@ public class Ledger
 		return m_lEntries;
 	}
 	
-	public Duet<Calendar, Calendar> getBoundingDates()
+	public GenericDouble<Calendar, Calendar> getBoundingDates()
 	{
-		return new Duet<Calendar, Calendar>(m_lEntries.get(0).getDate(), m_lEntries.get(m_lEntries.size() - 1).getDate());
+		return new GenericDouble<Calendar, Calendar>(m_lEntries.get(0).getDate(), m_lEntries.get(m_lEntries.size() - 1).getDate());
 	}
 	
 	public void attach(LedgerEntryVisitor root, boolean bProcess)
@@ -170,7 +170,7 @@ public class Ledger
 				{
 					throw new InvalidLedgerException("TENANT entry exists with empty tenant name. Date: " + tenantEntry.getDateString());
 				}
-				if (StringUtil.isStringIn(strTenantName, cTenantNames, StringUtil.NO_CASE_COMPARE))
+				if (cTenantNames.contains(strTenantName))
 				{
 					throw new InvalidLedgerException("Duplicate TENANT entry. Date: " + tenantEntry.getDateString());
 				}
@@ -184,7 +184,7 @@ public class Ledger
 				{
 					throw new InvalidLedgerException("PAYEE entry exists with empty payee name. Date: " + payeeEntry.getDateString());
 				}
-				if (StringUtil.isStringIn(strPayeeName, cPayeeNames, StringUtil.NO_CASE_COMPARE))
+				if (cPayeeNames.contains(strPayeeName))
 				{
 					throw new InvalidLedgerException("Duplicate PAYEE entry. Date: " + payeeEntry.getDateString());
 				}
@@ -379,7 +379,7 @@ public class Ledger
 	}
 
 /*	
-	private Duet<Calendar, Calendar> getDateDomain(List<Entry> lEntries)
+	private GenericDouble<Calendar, Calendar> getDateDomain(List<Entry> lEntries)
 	{
 		Set<Calendar> setDates = new HashSet<Calendar>();
 		for (Entry entry : lEntries)
@@ -395,7 +395,7 @@ public class Ledger
 		List<Calendar> lDates = new ArrayList<Calendar>(setDates);
 		Collections.sort(lDates);
 		
-		return new Duet<Calendar, Calendar>(lDates.get(0), lDates.get(lDates.size() - 1));
+		return new GenericDouble<Calendar, Calendar>(lDates.get(0), lDates.get(lDates.size() - 1));
 	}
 	
 	private void expandLedger(Calendar startDate, Calendar endDate, List<LedgerEntry> lDestinationForEntries)
@@ -413,10 +413,10 @@ public class Ledger
 			nextDate.set(Calendar.SECOND, 0);
 			nextDate.set(Calendar.MILLISECOND, 0);
 			currentDate = nextDate;
-			//System.out.println("Current Date: " + DateTimeUtil.getTime(DateTimeUtil.DF_YMDHMS, currentDate.getTimeInMillis()));
-			//System.out.println("  End Date: " + DateTimeUtil.getTime(DateTimeUtil.DF_YMDHMS, dateDomain.second.getTimeInMillis()));
+			//System.out.println("Current Date: " + DateUtil.getTime(DateTimeUtil.DF_YMDHMS, currentDate.getTimeInMillis()));
+			//System.out.println("  End Date: " + DateUtil.getTime(DateTimeUtil.DF_YMDHMS, dateDomain.second.getTimeInMillis()));
 		}
-		System.out.println("Ledger has (" + m_lEntries.size() + ") days, starting on " + DateTimeUtil.getTime(DateTimeUtil.DF_YMD, m_lEntries.get(0).getDate().getTimeInMillis()) + " and ending on " + DateTimeUtil.getTime(DateTimeUtil.DF_YMD, m_lEntries.get(m_lEntries.size()-1).getDate().getTimeInMillis()));
+		System.out.println("Ledger has (" + m_lEntries.size() + ") days, starting on " + DateUtil.getTime(DateTimeUtil.DF_YMD, m_lEntries.get(0).getDate().getTimeInMillis()) + " and ending on " + DateTimeUtil.getTime(DateTimeUtil.DF_YMD, m_lEntries.get(m_lEntries.size()-1).getDate().getTimeInMillis()));
 	}
 	
 	private void populateLedger(List<LedgerEntry> lLedgerEntries, List<Entry> lEntries)
@@ -606,7 +606,7 @@ public class Ledger
 	public String toString(int iIndent)
 	{
 		StringBuilder sb = new StringBuilder();
-		sb.append(StringUtil.getSpaces(iIndent)).append(getClass().getSimpleName()).append("\n");
+		sb.append(StringUtil.getIndent(iIndent)).append(getClass().getSimpleName()).append("\n");
 		StringUtil.toString(sb, "Entry", m_lEntries, iIndent + 1);
 		return sb.toString();
 	}

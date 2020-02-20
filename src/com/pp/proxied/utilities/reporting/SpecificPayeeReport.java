@@ -11,8 +11,8 @@ import com.pp.proxied.utilities.schema.PaymentEntry;
 import com.pp.proxied.utilities.schema.RemoveEntry;
 import com.pp.proxied.utilities.util.Coverage;
 
-import internal.atlaslite.jcce.convenience.Duet;
-import internal.atlaslite.jcce.util.StringUtil;
+import com.pp.proxied.utilities.util.GenericDouble;
+import com.pp.proxied.utilities.util.StringUtil;
 
 public class SpecificPayeeReport
 {
@@ -39,36 +39,36 @@ public class SpecificPayeeReport
 		}
 		else
 		{
-			sb.append(StringUtil.getSpaces(iIndent)).append("Payee Report: ").append(m_payeeEntry.getPayeeName()).append("\n");
+			sb.append(StringUtil.getIndent(iIndent)).append("Payee Report: ").append(m_payeeEntry.getPayeeName()).append("\n");
 			for (LedgerEntry entry : ledgerEntries)
 			{
 				sb.append(entry.toString(m_payeeEntry, iIndent + 1));
 			}
 			
 			// Examine service coverage
-			List<Duet<Calendar, Calendar>> lPeriods = new ArrayList<Duet<Calendar, Calendar>>();
+			List<GenericDouble<Calendar, Calendar>> lPeriods = new ArrayList<GenericDouble<Calendar, Calendar>>();
 			for (LedgerEntry entry : ledgerEntries)
 			{
 				List<PaymentEntry> lPayments = entry.getActivePayments(m_payeeEntry);
 				for (PaymentEntry payment : lPayments)
 				{
-					lPeriods.add(new Duet<Calendar, Calendar>(payment.getStartDate(), payment.getEndDate()));
+					lPeriods.add(new GenericDouble<Calendar, Calendar>(payment.getStartDate(), payment.getEndDate()));
 				}
 			}
 			
 			// Examine coverage from Payee Activation date to the end of the ledger OR the date the payee was removed.
-			Duet<Calendar, Calendar> ledgerDates = m_ledger.getBoundingDates();
+			GenericDouble<Calendar, Calendar> ledgerDates = m_ledger.getBoundingDates();
 			Calendar endDate = ledgerDates.second;
 			RemoveEntry removePayeeEntry = Ledger.getRemovePayeeEntry(m_ledger.getEntries(), m_payeeEntry.getPayeeName());
 			if (null != removePayeeEntry)
 			{
 				endDate = removePayeeEntry.getDate();
 			}
-			List<Duet<Calendar, Integer>> lCoverage = Coverage.getCoverage(m_payeeEntry.getDate(), endDate, lPeriods);
+			List<GenericDouble<Calendar, Integer>> lCoverage = Coverage.getCoverage(m_payeeEntry.getDate(), endDate, lPeriods);
 			String strCoverage = Coverage.toString(lCoverage, iIndent + 2);
 			if (StringUtil.isDefined(strCoverage))
 			{
-				sb.append(StringUtil.getSpaces(iIndent + 1)).append("Service Coverage:\n");
+				sb.append(StringUtil.getIndent(iIndent + 1)).append("Service Coverage:\n");
 				sb.append(strCoverage);
 			}
 		}

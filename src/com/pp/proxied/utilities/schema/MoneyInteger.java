@@ -1,7 +1,6 @@
 package com.pp.proxied.utilities.schema;
 
-import internal.atlaslite.jcce.util.HashCodeUtil;
-import internal.atlaslite.jcce.util.StringUtil;
+import com.pp.proxied.utilities.util.StringUtil;
 
 public class MoneyInteger
 {
@@ -90,7 +89,7 @@ public class MoneyInteger
 	@Override
 	public int hashCode()
 	{
-		return HashCodeUtil.hash(5521, getAmount());
+		return 37 + (37 * getAmount());
 	}
 	
 	@Override

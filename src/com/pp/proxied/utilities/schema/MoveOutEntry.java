@@ -3,8 +3,7 @@ package com.pp.proxied.utilities.schema;
 import java.security.InvalidParameterException;
 import java.text.ParseException;
 
-import internal.atlaslite.jcce.util.HashCodeUtil;
-import internal.atlaslite.jcce.util.StringUtil;
+import com.pp.proxied.utilities.util.StringUtil;
 
 public class MoveOutEntry
 	extends Entry
@@ -52,10 +51,7 @@ public class MoveOutEntry
 	public int hashCode()
 	{
 		int iCode = super.hashCode();
-		if (null != getTenantName())
-		{
-			iCode = HashCodeUtil.hash(iCode, getTenantName());
-		}
+		iCode = iCode * 37 + (getTenantName() != null ? getTenantName().hashCode() : 0);
 		return iCode;
 	}
 	

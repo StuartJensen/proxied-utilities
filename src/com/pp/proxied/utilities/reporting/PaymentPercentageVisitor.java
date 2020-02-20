@@ -1,7 +1,5 @@
 package com.pp.proxied.utilities.reporting;
 
-import internal.atlaslite.jcce.util.DateTimeUtil;
-
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -14,6 +12,7 @@ import com.pp.proxied.utilities.ledger.LedgerEntryVisitor;
 import com.pp.proxied.utilities.schema.Entry;
 import com.pp.proxied.utilities.schema.PaymentEntry;
 import com.pp.proxied.utilities.schema.TenantEntry;
+import com.pp.proxied.utilities.util.DateUtil;
 
 public class PaymentPercentageVisitor
 	extends LedgerEntryVisitor
@@ -91,7 +90,7 @@ public class PaymentPercentageVisitor
 		StringBuilder sb = new StringBuilder();
 		
 		LedgerEntry currentLedgerEntry = getCurrentLedgerEntry();
-		sb.append(DateTimeUtil.getTime(Entry.STANDARD_DATEFORMAT, currentLedgerEntry.getDate().getTimeInMillis())).append("\n");
+		sb.append(DateUtil.getTime(Entry.STANDARD_DATEFORMAT, currentLedgerEntry.getDate().getTimeInMillis())).append("\n");
 		if ((null != m_mapPerPaymentTenantPercentges) && (!m_mapPerPaymentTenantPercentges.isEmpty()))
 		{
 			Iterator<PaymentEntry> iterPayment = m_mapPerPaymentTenantPercentges.keySet().iterator();

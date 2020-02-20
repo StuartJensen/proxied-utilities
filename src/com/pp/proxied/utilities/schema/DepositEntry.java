@@ -3,9 +3,8 @@ package com.pp.proxied.utilities.schema;
 import java.security.InvalidParameterException;
 import java.text.ParseException;
 
-import internal.atlaslite.jcce.util.HashCodeUtil;
-import internal.atlaslite.jcce.util.ObjectUtil;
-import internal.atlaslite.jcce.util.StringUtil;
+import com.pp.proxied.utilities.util.ObjectUtil;
+import com.pp.proxied.utilities.util.StringUtil;
 
 public class DepositEntry
 	extends Entry
@@ -60,14 +59,8 @@ public class DepositEntry
 	public int hashCode()
 	{
 		int iCode = super.hashCode();
-		if (null != getTenantName())
-		{
-			iCode = HashCodeUtil.hash(iCode, getTenantName());
-		}
-		if (null != getAmount())
-		{
-			iCode = HashCodeUtil.hash(iCode, getAmount());
-		}
+		iCode = iCode * 37 + (getTenantName() != null ? getTenantName().hashCode() : 0);
+		iCode = iCode * 37 + (getAmount() != null ? getAmount().hashCode() : 0);
 		return iCode;
 	}
 	

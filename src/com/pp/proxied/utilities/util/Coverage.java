@@ -6,27 +6,24 @@ import java.util.List;
 
 import com.pp.proxied.utilities.schema.Entry;
 
-import internal.atlaslite.jcce.convenience.Duet;
-import internal.atlaslite.jcce.util.StringUtil;
-
 public class Coverage
 {
-	public static List<Duet<Calendar, Integer>> getCoverage(Calendar startDate, Calendar endDate, List<Duet<Calendar, Calendar>> lCoveragePeriods)
+	public static List<GenericDouble<Calendar, Integer>> getCoverage(Calendar startDate, Calendar endDate, List<GenericDouble<Calendar, Calendar>> lCoveragePeriods)
 	{
-		List<Duet<Calendar, Integer>> lResult = new ArrayList<Duet<Calendar, Integer>>();
+		List<GenericDouble<Calendar, Integer>> lResult = new ArrayList<GenericDouble<Calendar, Integer>>();
 		Calendar currentDate = Calendar.getInstance();
 		currentDate.setTime(startDate.getTime());
 		while (0 >= Entry.compareMonthDayYear(currentDate, endDate))
 		{
 			int iCoveredCount = 0;
-			for (Duet<Calendar, Calendar> coverage : lCoveragePeriods)
+			for (GenericDouble<Calendar, Calendar> coverage : lCoveragePeriods)
 			{
 				if (isIn(currentDate, coverage.first, coverage.second))
 				{
 					iCoveredCount++;
 				}
 			}
-			lResult.add(new Duet<Calendar, Integer>(currentDate, iCoveredCount));
+			lResult.add(new GenericDouble<Calendar, Integer>(currentDate, iCoveredCount));
 
 			Calendar nextDate = Calendar.getInstance();
 			nextDate.setTime(currentDate.getTime());
@@ -44,7 +41,7 @@ public class Coverage
 		return ((0 <= Entry.compareMonthDayYear(target, start)) && (0 >= Entry.compareMonthDayYear(target, end)));
 	}
 	
-	public static String toString(List<Duet<Calendar, Integer>> lCoverage, int iIndent)
+	public static String toString(List<GenericDouble<Calendar, Integer>> lCoverage, int iIndent)
 	{
 		StringBuilder sb = new StringBuilder();
 		if ((null != lCoverage) && (!lCoverage.isEmpty()))
@@ -52,7 +49,7 @@ public class Coverage
 			int iCurrentCoverage = -1;
 			Calendar start = null;
 			Calendar end = null;;
-			for (Duet<Calendar, Integer> coverage : lCoverage)
+			for (GenericDouble<Calendar, Integer> coverage : lCoverage)
 			{
 				if (null == start)
 				{
@@ -63,14 +60,14 @@ public class Coverage
 				{
 					if (iCurrentCoverage != coverage.second.intValue())
 					{
-						sb.append(StringUtil.getSpaces(iIndent)).append(Entry.toString(start)).append(" - ").append(Entry.toString(end)).append(": Coverage: ").append(iCurrentCoverage).append("\n");
+						sb.append(StringUtil.getIndent(iIndent)).append(Entry.toString(start)).append(" - ").append(Entry.toString(end)).append(": Coverage: ").append(iCurrentCoverage).append("\n");
 						start = coverage.first;
 						iCurrentCoverage = coverage.second.intValue();
 					}
 				}
 				end = coverage.first;
 			}
-			sb.append(StringUtil.getSpaces(iIndent)).append(Entry.toString(start)).append(" - ").append(Entry.toString(end)).append(": Coverage: ").append(iCurrentCoverage).append("\n");
+			sb.append(StringUtil.getIndent(iIndent)).append(Entry.toString(start)).append(" - ").append(Entry.toString(end)).append(": Coverage: ").append(iCurrentCoverage).append("\n");
 		}
 		return sb.toString();
 	}

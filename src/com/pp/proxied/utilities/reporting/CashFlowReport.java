@@ -1,6 +1,6 @@
 package com.pp.proxied.utilities.reporting;
 
-import internal.atlaslite.jcce.util.StringUtil;
+import com.pp.proxied.utilities.util.StringUtil;
 
 import java.util.List;
 
@@ -30,7 +30,7 @@ public class CashFlowReport
 		}
 		else
 		{
-			sb.append(StringUtil.getSpaces(iIndent)).append("Cash Flow Report:\n");
+			sb.append(StringUtil.getIndent(iIndent)).append("Cash Flow Report:\n");
 			for (LedgerEntry entry : ledgerEntries)
 			{
 				StringBuilder sbTransactions = new StringBuilder();
@@ -39,7 +39,7 @@ public class CashFlowReport
 				{
 					for (DepositEntry depositEntry : lDeposits)
 					{
-						sbTransactions.append(StringUtil.getSpaces(iIndent+2)).append("Deposit: From: ").append(depositEntry.getTenantName()).append(", $").append(depositEntry.getAmount().toString()).append("\n");
+						sbTransactions.append(StringUtil.getIndent(iIndent+2)).append("Deposit: From: ").append(depositEntry.getTenantName()).append(", $").append(depositEntry.getAmount().toString()).append("\n");
 					}
 				}
 				List<PaymentEntry> lPayments = entry.getActivePayments();
@@ -47,7 +47,7 @@ public class CashFlowReport
 				{
 					for (PaymentEntry paymentEntry : lPayments)
 					{
-						sbTransactions.append(StringUtil.getSpaces(iIndent+2)).append("Payment: To: ").append(paymentEntry.getPayeeName()).append(", $").append(paymentEntry.getAmount().toString()).append("\n");
+						sbTransactions.append(StringUtil.getIndent(iIndent+2)).append("Payment: To: ").append(paymentEntry.getPayeeName()).append(", $").append(paymentEntry.getAmount().toString()).append("\n");
 					}
 				}
 				List<BalanceEntry> lBalances = entry.getActiveBalances();
@@ -55,12 +55,12 @@ public class CashFlowReport
 				{
 					for (BalanceEntry balanceEntry : lBalances)
 					{
-						sbTransactions.append(StringUtil.getSpaces(iIndent+2)).append("Balance Set: For: ").append(balanceEntry.getTenantName()).append(", $").append(balanceEntry.getBalance().toString().toString()).append("\n");
+						sbTransactions.append(StringUtil.getIndent(iIndent+2)).append("Balance Set: For: ").append(balanceEntry.getTenantName()).append(", $").append(balanceEntry.getBalance().toString().toString()).append("\n");
 					}
 				}
 				if (0 != sbTransactions.length())
 				{
-					sb.append(StringUtil.getSpaces(iIndent+1)).append(entry.getDateString()).append(": ");
+					sb.append(StringUtil.getIndent(iIndent+1)).append(entry.getDateString()).append(": ");
 					BalancesVisitor balancesVisitor = (BalancesVisitor)entry.getVisitor(BalancesVisitor.class);
 					if (null != balancesVisitor)
 					{

@@ -3,8 +3,7 @@ package com.pp.proxied.utilities.schema;
 import java.security.InvalidParameterException;
 import java.text.ParseException;
 
-import internal.atlaslite.jcce.util.HashCodeUtil;
-import internal.atlaslite.jcce.util.StringUtil;
+import com.pp.proxied.utilities.util.StringUtil;
 
 public class PayeeEntry
 	extends Entry
@@ -35,10 +34,7 @@ public class PayeeEntry
 	public int hashCode()
 	{
 		int iCode = super.hashCode();
-		if (null != getPayeeName())
-		{
-			iCode = HashCodeUtil.hash(iCode, getPayeeName());
-		}
+		iCode = iCode * 37 + (getPayeeName() != null ? getPayeeName().hashCode() : 0);
 		return iCode;
 	}
 	

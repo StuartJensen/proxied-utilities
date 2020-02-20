@@ -4,10 +4,9 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 
-import internal.atlaslite.jcce.util.DateTimeUtil;
-import internal.atlaslite.jcce.util.HashCodeUtil;
-import internal.atlaslite.jcce.util.ObjectUtil;
-import internal.atlaslite.jcce.util.StringUtil;
+import com.pp.proxied.utilities.util.DateUtil;
+import com.pp.proxied.utilities.util.ObjectUtil;
+import com.pp.proxied.utilities.util.StringUtil;
 
 public abstract class Entry
 	implements Comparable<Entry>
@@ -60,12 +59,12 @@ public abstract class Entry
 	
 	public String getDateString()
 	{
-		return DateTimeUtil.getTime(Entry.STANDARD_DATEFORMAT, getDate().getTimeInMillis());
+		return DateUtil.getTime(Entry.STANDARD_DATEFORMAT, getDate().getTimeInMillis());
 	}
 	
 	public static String getDateString(Calendar date)
 	{
-		return DateTimeUtil.getTime(Entry.STANDARD_DATEFORMAT, date.getTimeInMillis());
+		return DateUtil.getTime(Entry.STANDARD_DATEFORMAT, date.getTimeInMillis());
 	}
 	
    /**
@@ -196,14 +195,8 @@ public abstract class Entry
 	public int hashCode()
 	{
 		int iCode = 1801;
-		if (null != m_date)
-		{
-			iCode = HashCodeUtil.hash(iCode, m_date);
-		}
-		if (null != m_verb)
-		{
-			iCode = HashCodeUtil.hash(iCode, m_verb);
-		}
+		iCode = iCode * 37 + (m_date != null ? m_date.hashCode() : 0);
+		iCode = iCode * 37 + (m_verb != null ? m_verb.hashCode() : 0);
 		return iCode;
 	}
 	
@@ -227,8 +220,8 @@ public abstract class Entry
 	
 	public String toString(int iIndent)
 	{
-		StringBuilder sb = new StringBuilder(StringUtil.getSpaces(iIndent) + getClass().getSimpleName() + "\n");
-		StringUtil.toString(sb, "Date", DateTimeUtil.getTime(STANDARD_DATEFORMAT, getDate()), iIndent + 1);
+		StringBuilder sb = new StringBuilder(StringUtil.getIndent(iIndent) + getClass().getSimpleName() + "\n");
+		StringUtil.toString(sb, "Date", DateUtil.getTime(STANDARD_DATEFORMAT, getDate()), iIndent + 1);
 		StringUtil.toString(sb, "Verb", getVerb(), iIndent + 1);
 		return sb.toString();
 	}

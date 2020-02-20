@@ -5,9 +5,7 @@ import java.text.ParseException;
 import java.util.Calendar;
 
 import com.pp.proxied.utilities.schema.comparators.TenantEntryByTenantName;
-
-import internal.atlaslite.jcce.util.HashCodeUtil;
-import internal.atlaslite.jcce.util.StringUtil;
+import com.pp.proxied.utilities.util.StringUtil;
 
 public class TenantEntry
 	extends Entry
@@ -73,10 +71,7 @@ public class TenantEntry
 	public int hashCode()
 	{
 		int iCode = super.hashCode();
-		if (null != getTenantName())
-		{
-			iCode = HashCodeUtil.hash(iCode, getTenantName());
-		}
+		iCode = iCode * 37 + (getTenantName() != null ? getTenantName().hashCode() : 0);
 		return iCode;
 	}
 	

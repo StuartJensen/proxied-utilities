@@ -1,6 +1,6 @@
 package com.pp.proxied.utilities.reporting;
 
-import internal.atlaslite.jcce.util.StringUtil;
+import com.pp.proxied.utilities.util.StringUtil;
 
 import java.util.List;
 

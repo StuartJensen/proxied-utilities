@@ -21,9 +21,8 @@ import com.pp.proxied.utilities.reporting.SpecificTenantReport;
 import com.pp.proxied.utilities.schema.Entry;
 import com.pp.proxied.utilities.schema.PayeeEntry;
 import com.pp.proxied.utilities.schema.TenantEntry;
-
-import internal.atlaslite.jcce.util.DateTimeUtil;
-import internal.atlaslite.jcce.util.StringUtil;
+import com.pp.proxied.utilities.util.DateUtil;
+import com.pp.proxied.utilities.util.StringUtil;
 
 public class ProxiedUtilities
 {
@@ -104,7 +103,7 @@ public class ProxiedUtilities
 				
 				Ledger ledger = new Ledger(lEntries);
 				Calendar today = Calendar.getInstance();
-				String strReportGenerationTime = DateTimeUtil.getTime(DAYHOUR_DATEFORMAT, today.getTime().getTime());
+				String strReportGenerationTime = DateUtil.getTime(DAYHOUR_DATEFORMAT, today.getTime().getTime());
 				sb.append("Report Generated on ").append(strReportGenerationTime).append("\n");
 				if (m_strReportType.equals(ARG_REPORT_TYPE_LEDGER))
 				{
@@ -206,7 +205,7 @@ public class ProxiedUtilities
 			else if (strTag.equals(ARG_TAG_REPORT))
 			{
 				m_strReportType = args[++iArgsIdx];
-				if (!StringUtil.isStringIn(m_strReportType, REPORT_TYPES))
+				if (!REPORT_TYPES.contains(m_strReportType))
 				{
 					showUsage("Unrecognized report type: " + m_strReportType);
 					System.exit(3);

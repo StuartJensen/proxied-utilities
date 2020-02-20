@@ -1,6 +1,6 @@
 package com.pp.proxied.utilities.reporting;
 
-import internal.atlaslite.jcce.util.StringUtil;
+import com.pp.proxied.utilities.util.StringUtil;
 
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -40,16 +40,16 @@ public class ApproximateReport
 		}
 		else
 		{
-			sb.append(StringUtil.getSpaces(iIndent)).append("Approximate Pending Owed Payments for tenant: ").append(m_tenantEntry.getTenantName()).append("\n");
+			sb.append(StringUtil.getIndent(iIndent)).append("Approximate Pending Owed Payments for tenant: ").append(m_tenantEntry.getTenantName()).append("\n");
 			LedgerEntry moveOutLedgerEntry = Ledger.getMoveOutTenantLedgerEntry(ledgerEntries, m_tenantEntry.getTenantName());
 			if (null == moveOutLedgerEntry)
 			{
-				sb.append(StringUtil.getSpaces(iIndent + 1)).append("Tenant: ").append(m_tenantEntry.getTenantName()).append(" does not have a MOVEOUT date!\n");
+				sb.append(StringUtil.getIndent(iIndent + 1)).append("Tenant: ").append(m_tenantEntry.getTenantName()).append(" does not have a MOVEOUT date!\n");
 			}
 			else
 			{
 				List<RemoveEntry> lRemovedPayees = new ArrayList<RemoveEntry>();
-				sb.append(StringUtil.getSpaces(iIndent + 1)).append("Tenant MOVEOUT date: ").append(moveOutLedgerEntry.getDateString()).append("\n");
+				sb.append(StringUtil.getIndent(iIndent + 1)).append("Tenant MOVEOUT date: ").append(moveOutLedgerEntry.getDateString()).append("\n");
 				Map<PayeeEntry, PaymentEntry> mapPayeesToLastPayment = new HashMap<PayeeEntry, PaymentEntry>();
 				for (LedgerEntry ledgerEntry : ledgerEntries)
 				{				
@@ -95,7 +95,7 @@ public class ApproximateReport
 				{
 					PayeeEntry payeeEntry = iterPayees.next();
 					PaymentEntry lastPaymentEntry = mapPayeesToLastPayment.get(payeeEntry);
-					sb.append(StringUtil.getSpaces(iIndent+1)).append(payeeEntry.getPayeeName()).append(": ");
+					sb.append(StringUtil.getIndent(iIndent+1)).append(payeeEntry.getPayeeName()).append(": ");
 					// Is this a removed payee?
 					RemoveEntry removeEntry = Ledger.getRemoveEntry(lRemovedPayees, payeeEntry.getPayeeName());
 					if (null != removeEntry)
@@ -134,13 +134,13 @@ public class ApproximateReport
 					MoneyInteger tenantBalance = balancesVisitor.getBalance(m_tenantEntry);
 					if (null != tenantBalance)
 					{
-						sb.append(StringUtil.getSpaces(iIndent+1));
+						sb.append(StringUtil.getIndent(iIndent+1));
 						sb.append("As of last ledger entry date ").append(Entry.getDateString(lastLedgerEntry.getDate()));
 						sb.append(" tenant's account balance is $").append(tenantBalance.toString()).append("\n");
 						totalOwed = totalOwed.minus(tenantBalance);
 					}
 				}
-				sb.append(StringUtil.getSpaces(iIndent+1));
+				sb.append(StringUtil.getIndent(iIndent+1));
 				sb.append("Approximate total owed: $").append(totalOwed.toString()).append("\n");
 			}
 		}

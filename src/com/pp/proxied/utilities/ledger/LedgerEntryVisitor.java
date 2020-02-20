@@ -1,6 +1,6 @@
 package com.pp.proxied.utilities.ledger;
 
-import internal.atlaslite.jcce.convenience.Duet;
+import com.pp.proxied.utilities.util.GenericDouble;
 
 import java.util.Calendar;
 
@@ -74,7 +74,7 @@ public abstract class LedgerEntryVisitor
 	}
 	*/
 	
-	public static Duet<LedgerEntryVisitor, LedgerEntryVisitor> getAtDate(LedgerEntryVisitor ledgerEntryVisitor, Calendar targetDate)
+	public static GenericDouble<LedgerEntryVisitor, LedgerEntryVisitor> getAtDate(LedgerEntryVisitor ledgerEntryVisitor, Calendar targetDate)
 	{
 		LedgerEntryVisitor current = ledgerEntryVisitor.getHead();
 		while ((null != current) && (!current.getCurrentLedgerEntry().isOn(targetDate)))
@@ -83,7 +83,7 @@ public abstract class LedgerEntryVisitor
 		}
 		if (null != current)
 		{	// Return before and after as same "Exact" entry
-			return new Duet<LedgerEntryVisitor, LedgerEntryVisitor>(current, current);
+			return new GenericDouble<LedgerEntryVisitor, LedgerEntryVisitor>(current, current);
 		}
 		// Exact date does not exist in ledger, find before and after entries
 		LedgerEntryVisitor before = null;
@@ -96,7 +96,7 @@ public abstract class LedgerEntryVisitor
 		// If before==null, after==non-null: head of list is AFTER, after == head
 		// If before==non-null, after==null: tail of list is BEFORE, before == tail
 		// If before==non-null, after==non-null: returned entries bound target date
-		return new Duet<LedgerEntryVisitor, LedgerEntryVisitor>(before, current);
+		return new GenericDouble<LedgerEntryVisitor, LedgerEntryVisitor>(before, current);
 	}
 	
 	public boolean isOnOrBefore(Calendar that)

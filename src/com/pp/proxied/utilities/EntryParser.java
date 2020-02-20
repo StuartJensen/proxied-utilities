@@ -1,6 +1,6 @@
 package com.pp.proxied.utilities;
 
-import internal.atlaslite.jcce.util.StringUtil;
+import com.pp.proxied.utilities.util.StringUtil;
 
 import java.io.BufferedReader;
 import java.io.File;

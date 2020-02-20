@@ -11,7 +11,7 @@ import com.pp.proxied.utilities.schema.PaymentEntry;
 import com.pp.proxied.utilities.schema.TenantEntry;
 import com.pp.proxied.utilities.util.PaymentDetails;
 
-import internal.atlaslite.jcce.util.StringUtil;
+import com.pp.proxied.utilities.util.StringUtil;
 
 public class ExtraPaidReport
 {
@@ -32,7 +32,7 @@ public class ExtraPaidReport
 		}
 		else
 		{
-			sb.append(StringUtil.getSpaces(iIndent)).append("Extra Paid Report:\n");
+			sb.append(StringUtil.getIndent(iIndent)).append("Extra Paid Report:\n");
 			for (LedgerEntry entry : ledgerEntries)
 			{
 				List<PaymentEntry> lPayments = entry.getActivePayments();
@@ -42,13 +42,13 @@ public class ExtraPaidReport
 					if (null != paymentsVisitor)
 					{
 						boolean bNonZeroDuring = false;
-						sb.append(StringUtil.getSpaces(iIndent)).append(entry.getDateString()).append(":\n");
+						sb.append(StringUtil.getIndent(iIndent)).append(entry.getDateString()).append(":\n");
 						Map<PaymentEntry, List<PaymentDetails>> mapPayments = paymentsVisitor.getPayments();
 						Iterator<PaymentEntry> iter = mapPayments.keySet().iterator();
 						while (iter.hasNext())
 						{
 							PaymentEntry paymentEntry = iter.next();
-							sb.append(StringUtil.getSpaces(iIndent+1)).append(paymentEntry.getPayeeName());
+							sb.append(StringUtil.getIndent(iIndent+1)).append(paymentEntry.getPayeeName());
 							sb.append(", Total: $").append(paymentEntry.getAmount().toString()).append("\n");
 							List<PaymentDetails> lDetails = mapPayments.get(paymentEntry);
 							if (null != lDetails)
@@ -60,7 +60,7 @@ public class ExtraPaidReport
 									{
 										bNonZeroDuring = true;
 									}
-									sb.append(StringUtil.getSpaces(iIndent + 2)).append(details.getTenantEntry().getTenantName());
+									sb.append(StringUtil.getIndent(iIndent + 2)).append(details.getTenantEntry().getTenantName());
 									sb.append(", Paid: $").append(details.getAmountDisplayName());
 									sb.append(", ").append(details.getPercentage()).append("%");
 									sb.append(", Extra During: $").append(during.toString());
@@ -71,7 +71,7 @@ public class ExtraPaidReport
 						// Now show totals after all payments are done
 						if (bNonZeroDuring)
 						{	// But only if there was some change in totals
-							sb.append(StringUtil.getSpaces(iIndent+1)).append("Totals:\n");
+							sb.append(StringUtil.getIndent(iIndent+1)).append("Totals:\n");
 							Map<TenantEntry, MoneyInteger> mapBefore = paymentsVisitor.getExtraPaidBeforeProcessing();
 							Map<TenantEntry, MoneyInteger> mapDuring = paymentsVisitor.getExtraPaidDuringProcessing();
 							
@@ -86,7 +86,7 @@ public class ExtraPaidReport
 								{
 									total = total.plus(during);
 								}
-								sb.append(StringUtil.getSpaces(iIndent + 2)).append(tenantEntry.getTenantName());
+								sb.append(StringUtil.getIndent(iIndent + 2)).append(tenantEntry.getTenantName());
 								sb.append(", Before: $").append(before.toString());
 								sb.append(", During: ").append(((null != during) ? "$" + during.toString() : "$0.00"));
 								sb.append(", Total: $").append(total.toString());

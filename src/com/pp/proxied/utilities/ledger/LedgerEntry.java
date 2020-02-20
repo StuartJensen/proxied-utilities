@@ -1,11 +1,5 @@
 package com.pp.proxied.utilities.ledger;
 
-import internal.atlaslite.jcce.util.CollectionUtil;
-import internal.atlaslite.jcce.util.DateTimeUtil;
-import internal.atlaslite.jcce.util.HashCodeUtil;
-import internal.atlaslite.jcce.util.ObjectUtil;
-import internal.atlaslite.jcce.util.StringUtil;
-
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
@@ -22,7 +16,11 @@ import com.pp.proxied.utilities.schema.PayeeEntry;
 import com.pp.proxied.utilities.schema.PaymentEntry;
 import com.pp.proxied.utilities.schema.RemoveEntry;
 import com.pp.proxied.utilities.schema.TenantEntry;
+import com.pp.proxied.utilities.util.CollectionUtil;
+import com.pp.proxied.utilities.util.DateUtil;
+import com.pp.proxied.utilities.util.ObjectUtil;
 import com.pp.proxied.utilities.util.PaymentDetails;
+import com.pp.proxied.utilities.util.StringUtil;
 
 public class LedgerEntry
 {
@@ -54,7 +52,7 @@ public class LedgerEntry
 	
 	public String getDateString()
 	{
-		return DateTimeUtil.getTime(Entry.STANDARD_DATEFORMAT, m_date.getTimeInMillis());
+		return DateUtil.getTime(Entry.STANDARD_DATEFORMAT, m_date.getTimeInMillis());
 	}
 	
 	public int getNthEntryInledger()
@@ -250,7 +248,7 @@ public class LedgerEntry
 			{
 				if (payeeEntry.getPayeeName().equals(payee.getPayeeName()))
 				{
-					sb.append(StringUtil.getSpaces(iIndent + 2)).append("Activated as a Payee\n");
+					sb.append(StringUtil.getIndent(iIndent + 2)).append("Activated as a Payee\n");
 				}
 			}
 		}
@@ -260,7 +258,7 @@ public class LedgerEntry
 			{
 				if (payeeEntry.getPayeeName().equals(remove.getTargetName()))
 				{
-					sb.append(StringUtil.getSpaces(iIndent + 2)).append("De-Activated as a Payee (Removed)\n");
+					sb.append(StringUtil.getIndent(iIndent + 2)).append("De-Activated as a Payee (Removed)\n");
 				}
 			}
 		}
@@ -276,10 +274,10 @@ public class LedgerEntry
 						List<PaymentDetails> lDetails = paymentsVisitor.getPaymentDetails(payment);
 						if (null != lDetails)
 						{
-							sb.append(StringUtil.getSpaces(iIndent + 2)).append("Payment: Total: ").append(payment.getAmount().toString()).append(", Service Period: ").append(Entry.toString(payment.getStartDate())).append(" to ").append(Entry.toString(payment.getEndDate())).append("\n");
+							sb.append(StringUtil.getIndent(iIndent + 2)).append("Payment: Total: ").append(payment.getAmount().toString()).append(", Service Period: ").append(Entry.toString(payment.getStartDate())).append(" to ").append(Entry.toString(payment.getEndDate())).append("\n");
 							for (PaymentDetails details : lDetails)
 							{
-								sb.append(StringUtil.getSpaces(iIndent + 3)).append("From: ").append(details.getTenantEntry().getTenantName()).append(": ").append(details.getPercentage()).append("%, Amount: ").append(details.getAmountDisplayName()).append("\n");
+								sb.append(StringUtil.getIndent(iIndent + 3)).append("From: ").append(details.getTenantEntry().getTenantName()).append(": ").append(details.getPercentage()).append("%, Amount: ").append(details.getAmountDisplayName()).append("\n");
 							}
 						}
 					}
@@ -289,7 +287,7 @@ public class LedgerEntry
 		if (0 != sb.length())
 		{
 			StringBuilder sbWrapper = new StringBuilder();
-			StringUtil.toString(sbWrapper, "Date", DateTimeUtil.getTime(Entry.STANDARD_DATEFORMAT, getDate()), iIndent + 1);
+			StringUtil.toString(sbWrapper, "Date", DateUtil.getTime(Entry.STANDARD_DATEFORMAT, getDate()), iIndent + 1);
 			sbWrapper.append(sb.toString());
 			return sbWrapper.toString();
 		}
@@ -306,7 +304,7 @@ public class LedgerEntry
 			{
 				if (tenantEntry.getTenantName().equals(tenant.getTenantName()))
 				{
-					sb.append(StringUtil.getSpaces(iIndent + 2)).append("Activated as a Tenant\n");
+					sb.append(StringUtil.getIndent(iIndent + 2)).append("Activated as a Tenant\n");
 				}
 			}
 		}
@@ -316,7 +314,7 @@ public class LedgerEntry
 			{
 				if (tenantEntry.getTenantName().equals(moveOut.getTenantName()))
 				{
-					sb.append(StringUtil.getSpaces(iIndent + 2)).append("De-Activated as a Tenant (Move Out)\n");
+					sb.append(StringUtil.getIndent(iIndent + 2)).append("De-Activated as a Tenant (Move Out)\n");
 				}
 			}
 		}
@@ -326,7 +324,7 @@ public class LedgerEntry
 			{
 				if (tenantEntry.getTenantName().equals(remove.getTargetName()))
 				{
-					sb.append(StringUtil.getSpaces(iIndent + 2)).append("Removed as a Tenant (Removed)\n");
+					sb.append(StringUtil.getIndent(iIndent + 2)).append("Removed as a Tenant (Removed)\n");
 				}
 			}
 		}
@@ -336,7 +334,7 @@ public class LedgerEntry
 			{
 				if (tenantEntry.getTenantName().equals(balance.getTenantName()))
 				{
-					sb.append(StringUtil.getSpaces(iIndent + 2)).append("Balance set to: ").append(balance.getBalance().toString()).append("\n");
+					sb.append(StringUtil.getIndent(iIndent + 2)).append("Balance set to: ").append(balance.getBalance().toString()).append("\n");
 				}
 			}
 		}
@@ -347,7 +345,7 @@ public class LedgerEntry
 				if ((tenantEntry.getTenantName().equals(flush.getFromTenantName())) ||
 					(tenantEntry.getTenantName().equals(flush.getToTenantName())))
 				{
-					sb.append(StringUtil.getSpaces(iIndent + 2)).append("Flush: From: ").append(flush.getFromTenantName()).append(" to ").append(flush.getToTenantName()).append("\n");
+					sb.append(StringUtil.getIndent(iIndent + 2)).append("Flush: From: ").append(flush.getFromTenantName()).append(" to ").append(flush.getToTenantName()).append("\n");
 				}
 			}
 		}
@@ -362,7 +360,7 @@ public class LedgerEntry
 					if (null != details)
 					{
 						int iPayeeCount = paymentsVisitor.getPaymentPayeeCount(payment);
-						sb.append(StringUtil.getSpaces(iIndent + 2)).append("Paid: ").append(payment.getPayeeName()).append(": $").append(details.getAmountDisplayName());
+						sb.append(StringUtil.getIndent(iIndent + 2)).append("Paid: ").append(payment.getPayeeName()).append(": $").append(details.getAmountDisplayName());
 						sb.append(" of $").append(payment.getAmountDisplayName()).append(": Tenants Paying: ").append(iPayeeCount).append(", Service Period: ");
 						sb.append(details.getPercentage()).append("% of ").append(Entry.getDateString(payment.getStartDate())).append(" - ").append(Entry.getDateString(payment.getEndDate())).append("\n");
 					}
@@ -375,7 +373,7 @@ public class LedgerEntry
 			{
 				if (tenantEntry.getTenantName().equals(deposit.getTenantName()))
 				{
-					sb.append(StringUtil.getSpaces(iIndent + 2)).append("Deposited: ").append(deposit.getAmount().toString()).append("\n");
+					sb.append(StringUtil.getIndent(iIndent + 2)).append("Deposited: ").append(deposit.getAmount().toString()).append("\n");
 				}
 			}
 		}
@@ -387,11 +385,11 @@ public class LedgerEntry
 				MoneyInteger balance = balancesVisitor.getBalance(tenantEntry);
 				if (null != balance)
 				{
-					sb.append(StringUtil.getSpaces(iIndent + 2)).append("Balance: ").append(balance.toString()).append("\n");
+					sb.append(StringUtil.getIndent(iIndent + 2)).append("Balance: ").append(balance.toString()).append("\n");
 				}
 			}
 			StringBuilder sbWrapper = new StringBuilder();
-			StringUtil.toString(sbWrapper, "Date", DateTimeUtil.getTime(Entry.STANDARD_DATEFORMAT, getDate()), iIndent + 1);
+			StringUtil.toString(sbWrapper, "Date", DateUtil.getTime(Entry.STANDARD_DATEFORMAT, getDate()), iIndent + 1);
 			sbWrapper.append(sb.toString());
 			return sbWrapper.toString();
 		}
@@ -401,14 +399,14 @@ public class LedgerEntry
 	public String toString(int iIndent)
 	{
 		StringBuilder sb = new StringBuilder();
-		sb.append(StringUtil.getSpaces(iIndent)).append(getClass().getSimpleName()).append("\n");
-		StringUtil.toString(sb, "Date", DateTimeUtil.getTime(Entry.STANDARD_DATEFORMAT, getDate()), iIndent + 1);
+		sb.append(StringUtil.getIndent(iIndent)).append(getClass().getSimpleName()).append("\n");
+		StringUtil.toString(sb, "Date", DateUtil.getTime(Entry.STANDARD_DATEFORMAT, getDate()), iIndent + 1);
 		if (null != m_lActiveTenants)
 		{
 			StringUtil.toString(sb, "Tenants", m_lActiveTenants.size(), iIndent + 1);
 			for (TenantEntry tenant : m_lActiveTenants)
 			{
-				sb.append(StringUtil.getSpaces(iIndent + 2)).append("Tenant: ").append(tenant.getTenantName()).append("\n");
+				sb.append(StringUtil.getIndent(iIndent + 2)).append("Tenant: ").append(tenant.getTenantName()).append("\n");
 			}
 		}
 		if (null != m_lActiveMoveOuts)
@@ -416,7 +414,7 @@ public class LedgerEntry
 			StringUtil.toString(sb, "MoveOuts", m_lActiveMoveOuts.size(), iIndent + 1);
 			for (MoveOutEntry moveOut : m_lActiveMoveOuts)
 			{
-				sb.append(StringUtil.getSpaces(iIndent + 2)).append("Tenant: ").append(moveOut.getTenantName()).append("\n");
+				sb.append(StringUtil.getIndent(iIndent + 2)).append("Tenant: ").append(moveOut.getTenantName()).append("\n");
 			}
 		}
 		if (null != m_lActivePayees)
@@ -424,7 +422,7 @@ public class LedgerEntry
 			StringUtil.toString(sb, "Payees", m_lActivePayees.size(), iIndent + 1);
 			for (PayeeEntry payee : m_lActivePayees)
 			{
-				sb.append(StringUtil.getSpaces(iIndent + 2)).append("Payee: ").append(payee.getPayeeName()).append("\n");
+				sb.append(StringUtil.getIndent(iIndent + 2)).append("Payee: ").append(payee.getPayeeName()).append("\n");
 			}
 		}
 		if (null != m_lActiveBalances)
@@ -432,7 +430,7 @@ public class LedgerEntry
 			StringUtil.toString(sb, "Balances", m_lActiveBalances.size(), iIndent + 1);
 			for (BalanceEntry balance : m_lActiveBalances)
 			{
-				sb.append(StringUtil.getSpaces(iIndent + 2)).append("Balance: ").append(balance.getTenantName()).append(", Amount: ").append(balance.getBalance()).append("\n");
+				sb.append(StringUtil.getIndent(iIndent + 2)).append("Balance: ").append(balance.getTenantName()).append(", Amount: ").append(balance.getBalance()).append("\n");
 			}
 		}
 		if (null != m_lActivePayments)
@@ -440,7 +438,7 @@ public class LedgerEntry
 			StringUtil.toString(sb, "Payments", m_lActivePayments.size(), iIndent + 1);
 			for (PaymentEntry payment : m_lActivePayments)
 			{
-				sb.append(StringUtil.getSpaces(iIndent + 2)).append("Payment: ").append(payment.getPayeeName()).append(", Amount: ").append(payment.getAmount()).append(", Start: ").append(Entry.toString(payment.getStartDate())).append(", End: ").append(Entry.toString(payment.getEndDate())).append("\n");
+				sb.append(StringUtil.getIndent(iIndent + 2)).append("Payment: ").append(payment.getPayeeName()).append(", Amount: ").append(payment.getAmount()).append(", Start: ").append(Entry.toString(payment.getStartDate())).append(", End: ").append(Entry.toString(payment.getEndDate())).append("\n");
 			}
 		}
 		if (null != m_lActiveDeposits)
@@ -448,7 +446,7 @@ public class LedgerEntry
 			StringUtil.toString(sb, "Deposits", m_lActiveDeposits.size(), iIndent + 1);
 			for (DepositEntry deposit : m_lActiveDeposits)
 			{
-				sb.append(StringUtil.getSpaces(iIndent + 2)).append("Deposit: ").append(deposit.getTenantName()).append(", Amount: ").append(deposit.getAmount()).append("\n");
+				sb.append(StringUtil.getIndent(iIndent + 2)).append("Deposit: ").append(deposit.getTenantName()).append(", Amount: ").append(deposit.getAmount()).append("\n");
 			}
 		}
 		if (null != m_lActiveFlushes)
@@ -456,7 +454,7 @@ public class LedgerEntry
 			StringUtil.toString(sb, "Flushes", m_lActiveFlushes.size(), iIndent + 1);
 			for (FlushEntry flush : m_lActiveFlushes)
 			{
-				sb.append(StringUtil.getSpaces(iIndent + 2)).append("Flush: From: ").append(flush.getFromTenantName()).append(" to ").append(flush.getToTenantName()).append("\n");
+				sb.append(StringUtil.getIndent(iIndent + 2)).append("Flush: From: ").append(flush.getFromTenantName()).append(" to ").append(flush.getToTenantName()).append("\n");
 			}
 		}
 		if (null != m_lActiveRemoves)
@@ -464,7 +462,7 @@ public class LedgerEntry
 			StringUtil.toString(sb, "Removes", m_lActiveRemoves.size(), iIndent + 1);
 			for (RemoveEntry remove : m_lActiveRemoves)
 			{
-				sb.append(StringUtil.getSpaces(iIndent + 2)).append("Target: ").append(remove.getTargetName()).append("\n");
+				sb.append(StringUtil.getIndent(iIndent + 2)).append("Target: ").append(remove.getTargetName()).append("\n");
 			}
 		}
 		return sb.toString();
@@ -479,15 +477,16 @@ public class LedgerEntry
 	@Override
 	public int hashCode()
 	{
-		int iCode = HashCodeUtil.hash(8467, getActiveTenants());
-		iCode = HashCodeUtil.hash(iCode, getActivePayees());
-		iCode = HashCodeUtil.hash(iCode, getActiveBalances());
-		iCode = HashCodeUtil.hash(iCode, getActivePayments());
-		iCode = HashCodeUtil.hash(iCode, getActiveDeposits());
-		iCode = HashCodeUtil.hash(iCode, getActiveMoveOuts());
-		iCode = HashCodeUtil.hash(iCode, getActiveRemoves());
-		iCode = HashCodeUtil.hash(iCode, getActiveFlushes());
-		iCode = HashCodeUtil.hash(iCode, getDate());
+		int iCode = 37;
+		iCode = iCode * 37 + (getActiveTenants() != null ? getActiveTenants().hashCode() : 0);
+		iCode = iCode * 37 + (getActivePayees() != null ? getActivePayees().hashCode() : 0);
+		iCode = iCode * 37 + (getActiveBalances() != null ? getActiveBalances().hashCode() : 0);
+		iCode = iCode * 37 + (getActivePayments() != null ? getActivePayments().hashCode() : 0);
+		iCode = iCode * 37 + (getActiveDeposits() != null ? getActiveDeposits().hashCode() : 0);
+		iCode = iCode * 37 + (getActiveMoveOuts() != null ? getActiveMoveOuts().hashCode() : 0);
+		iCode = iCode * 37 + (getActiveRemoves() != null ? getActiveRemoves().hashCode() : 0);
+		iCode = iCode * 37 + (getActiveFlushes() != null ? getActiveFlushes().hashCode() : 0);
+		iCode = iCode * 37 + (getDate() != null ? getDate().hashCode() : 0);
 		return iCode;
 	}
 	

@@ -4,10 +4,9 @@ import java.security.InvalidParameterException;
 import java.text.ParseException;
 import java.util.Calendar;
 
-import internal.atlaslite.jcce.util.DateTimeUtil;
-import internal.atlaslite.jcce.util.HashCodeUtil;
-import internal.atlaslite.jcce.util.ObjectUtil;
-import internal.atlaslite.jcce.util.StringUtil;
+import com.pp.proxied.utilities.util.DateUtil;
+import com.pp.proxied.utilities.util.ObjectUtil;
+import com.pp.proxied.utilities.util.StringUtil;
 
 public class PaymentEntry
 	extends Entry
@@ -88,8 +87,8 @@ public class PaymentEntry
 		StringBuilder sb = new StringBuilder(super.toString(iIndent));
 		StringUtil.toString(sb, "Payee", getPayeeName(), iIndent + 1);
 		StringUtil.toString(sb, "Amount", getAmount(), iIndent + 1);
-		StringUtil.toString(sb, "Start Service Date", DateTimeUtil.getTime(STANDARD_DATEFORMAT, getStartDate()), iIndent + 1);
-		StringUtil.toString(sb, "End Service Date", DateTimeUtil.getTime(STANDARD_DATEFORMAT, getEndDate()), iIndent + 1);
+		StringUtil.toString(sb, "Start Service Date", DateUtil.getTime(STANDARD_DATEFORMAT, getStartDate()), iIndent + 1);
+		StringUtil.toString(sb, "End Service Date", DateUtil.getTime(STANDARD_DATEFORMAT, getEndDate()), iIndent + 1);
 		return sb.toString();
 	}
 	
@@ -103,22 +102,10 @@ public class PaymentEntry
 	public int hashCode()
 	{
 		int iCode = super.hashCode();
-		if (null != getPayeeName())
-		{
-			iCode = HashCodeUtil.hash(iCode, getPayeeName());
-		}
-		if (null != getAmount())
-		{
-			iCode = HashCodeUtil.hash(iCode, getAmount());
-		}
-		if (null != getStartDate())
-		{
-			iCode = HashCodeUtil.hash(iCode, getStartDate());
-		}
-		if (null != getEndDate())
-		{
-			iCode = HashCodeUtil.hash(iCode, getEndDate());
-		}
+		iCode = iCode * 37 + (getPayeeName() != null ? getPayeeName().hashCode() : 0);
+		iCode = iCode * 37 + (getAmount() != null ? getAmount().hashCode() : 0);
+		iCode = iCode * 37 + (getStartDate() != null ? getStartDate().hashCode() : 0);
+		iCode = iCode * 37 + (getEndDate() != null ? getEndDate().hashCode() : 0);
 		return iCode;
 	}
 	

@@ -4,8 +4,7 @@ import java.security.InvalidParameterException;
 import java.text.ParseException;
 import java.util.Calendar;
 
-import internal.atlaslite.jcce.util.HashCodeUtil;
-import internal.atlaslite.jcce.util.StringUtil;
+import com.pp.proxied.utilities.util.StringUtil;
 
 public class RemoveEntry
 	extends Entry
@@ -60,10 +59,7 @@ public class RemoveEntry
 	public int hashCode()
 	{
 		int iCode = super.hashCode();
-		if (null != getTargetName())
-		{
-			iCode = HashCodeUtil.hash(iCode, getTargetName());
-		}
+		iCode = iCode * 37 + (getTargetName() != null ? getTargetName().hashCode() : 0);
 		return iCode;
 	}
 	

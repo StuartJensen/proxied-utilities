@@ -1,6 +1,6 @@
 package com.pp.proxied.utilities.schema;
 
-import internal.atlaslite.jcce.util.StringUtil;
+import com.pp.proxied.utilities.util.StringUtil;
 
 import java.security.InvalidParameterException;
 import java.text.ParseException;
