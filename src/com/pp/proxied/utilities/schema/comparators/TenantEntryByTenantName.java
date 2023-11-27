@@ -2,7 +2,7 @@ package com.pp.proxied.utilities.schema.comparators;
 
 import java.util.Comparator;
 
-import com.pp.proxied.utilities.schema.TenantEntry;
+import com.pp.proxied.utilities.register.schema.TenantEntry;
 
 public class TenantEntryByTenantName
 	implements Comparator<TenantEntry>

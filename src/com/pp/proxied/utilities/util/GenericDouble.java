@@ -51,8 +51,8 @@ public class GenericDouble<F, S>
     public int hashCode()
     {
     	int code = 37;
-    	code = code * 37 + (first != null ? first.hashCode() : 0);
-    	code = code * 37 + (second != null ? second.hashCode() : 0);
+    	code = HashUtil.hash(code, first);
+    	code = HashUtil.hash(code, second);
     	return code;
     }
 }

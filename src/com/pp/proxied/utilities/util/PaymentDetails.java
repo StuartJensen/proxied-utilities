@@ -1,7 +1,7 @@
 package com.pp.proxied.utilities.util;
 
-import com.pp.proxied.utilities.schema.MoneyInteger;
-import com.pp.proxied.utilities.schema.TenantEntry;
+import com.pp.proxied.utilities.register.schema.MoneyInteger;
+import com.pp.proxied.utilities.register.schema.TenantEntry;
 
 public class PaymentDetails
 {

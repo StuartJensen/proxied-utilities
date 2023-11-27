@@ -1,15 +1,23 @@
 package com.pp.proxied.utilities.reporting;
 
-import com.pp.proxied.utilities.util.StringUtil;
-
+import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.List;
 
 import com.pp.proxied.utilities.ledger.Ledger;
 import com.pp.proxied.utilities.ledger.LedgerEntry;
-import com.pp.proxied.utilities.schema.BalanceEntry;
-import com.pp.proxied.utilities.schema.DepositEntry;
-import com.pp.proxied.utilities.schema.MoneyInteger;
-import com.pp.proxied.utilities.schema.PaymentEntry;
+import com.pp.proxied.utilities.ledger.schema.ActivePayment;
+import com.pp.proxied.utilities.ledger.schema.ActivePayments;
+import com.pp.proxied.utilities.ledger.schema.ActiveTenantPayment;
+import com.pp.proxied.utilities.ledger.schema.ActiveTenantPayments;
+import com.pp.proxied.utilities.ledger.schema.RegisterDeposits;
+import com.pp.proxied.utilities.ledger.schema.RegisterPayments;
+import com.pp.proxied.utilities.register.schema.DepositEntry;
+import com.pp.proxied.utilities.register.schema.MoneyInteger;
+import com.pp.proxied.utilities.register.schema.PayeeEntry;
+import com.pp.proxied.utilities.register.schema.PaymentEntry;
+import com.pp.proxied.utilities.register.schema.TenantEntry;
+import com.pp.proxied.utilities.util.StringUtil;
 
 public class CashFlowReport
 {
@@ -22,53 +30,96 @@ public class CashFlowReport
 	
 	public String toString(int iIndent)
 	{
+		List<CashFlowDetails> lDetails = new ArrayList<CashFlowDetails>();
 		StringBuilder sb = new StringBuilder();
-		List<LedgerEntry> ledgerEntries = m_ledger.getLedgerEntries();
-		if ((null == ledgerEntries) || (ledgerEntries.isEmpty()))
+		List<LedgerEntry> lEntries = m_ledger.getLedgerEntries();
+		if ((null == lEntries) || (lEntries.isEmpty()))
 		{
 			sb.append("Ledger is empty.");
 		}
 		else
-		{
-			sb.append(StringUtil.getIndent(iIndent)).append("Cash Flow Report:\n");
-			for (LedgerEntry entry : ledgerEntries)
+		{	// Start at first entry's year
+			int iYear = lEntries.get(0).getDate().get(Calendar.YEAR);
+			CashFlowDetails details = new CashFlowDetails(iYear);
+			for (LedgerEntry entry : lEntries)
+			{	// Has the year changed?
+				if (iYear != entry.getDate().get(Calendar.YEAR))
+				{
+					// Output this year's details to the report
+					//details.complete();
+					//sb.append(details.report());
+					lDetails.add(details);
+					// Reset data
+					iYear = entry.getDate().get(Calendar.YEAR);
+					details = new CashFlowDetails(iYear);
+				}
+				RegisterDeposits registerDeposits = entry.getRegisterDeposits();
+				if ((null != registerDeposits) && (!registerDeposits.isEmpty()))
+				{
+					for (DepositEntry deposit : registerDeposits.getDeposits())
+					{
+						details.addTenantDeposit(deposit.getAssociatedTenantEntry(), deposit.getAmount());
+					}
+				}
+				
+				RegisterPayments registerPayments = entry.getRegisterPayments();
+				if ((null != registerPayments) && (!registerPayments.isEmpty()))
+				{
+					for (PaymentEntry payment : registerPayments.getPayments())
+					{
+						details.addBilledPayeePayment(payment.getAssociatedPayeeEntry(), payment.getAmount());
+					}
+				}
+				
+				ActivePayments activePayments = entry.getActivePayments();
+				if ((null != activePayments) && (!activePayments.isEmpty()))
+				{
+					for (ActivePayment activePayment : activePayments.getActivePayments())
+					{
+						PayeeEntry payeeEntry = activePayment.getPayment().getAssociatedPayeeEntry();
+						ActiveTenantPayments activeTenantPayments = activePayment.getActiveTenantPayments();
+						if ((null != activeTenantPayments) && (!activeTenantPayments.isEmpty()))
+						{
+							for (ActiveTenantPayment atp : activeTenantPayments.getActiveTenantPayments())
+							{
+								TenantEntry tenantEntry = atp.getActiveTenant().getTenant();
+								details.addTenantPayment(tenantEntry, atp.getPaidAmount());
+								details.addPayeePayment(payeeEntry, atp.getPaidAmount());
+							}
+						}
+						
+					}
+				}
+			}
+			if (!details.isEmpty())
+			{	// Report last year
+				//details.complete();
+				//sb.append(details.report());
+				lDetails.add(details);
+			}
+			
+			// Report sum for entire ledger
+			MoneyInteger expenses = MoneyInteger.ZERO;
+			MoneyInteger expensesBilled = MoneyInteger.ZERO;
+			MoneyInteger income = MoneyInteger.ZERO;
+			for (CashFlowDetails current : lDetails)
 			{
-				StringBuilder sbTransactions = new StringBuilder();
-				List<DepositEntry> lDeposits = entry.getActiveDeposits();
-				if ((null != lDeposits) && (!lDeposits.isEmpty()))
-				{
-					for (DepositEntry depositEntry : lDeposits)
-					{
-						sbTransactions.append(StringUtil.getIndent(iIndent+2)).append("Deposit: From: ").append(depositEntry.getTenantName()).append(", $").append(depositEntry.getAmount().toString()).append("\n");
-					}
-				}
-				List<PaymentEntry> lPayments = entry.getActivePayments();
-				if ((null != lPayments) && (!lPayments.isEmpty()))
-				{
-					for (PaymentEntry paymentEntry : lPayments)
-					{
-						sbTransactions.append(StringUtil.getIndent(iIndent+2)).append("Payment: To: ").append(paymentEntry.getPayeeName()).append(", $").append(paymentEntry.getAmount().toString()).append("\n");
-					}
-				}
-				List<BalanceEntry> lBalances = entry.getActiveBalances();
-				if ((null != lBalances) && (!lBalances.isEmpty()))
-				{
-					for (BalanceEntry balanceEntry : lBalances)
-					{
-						sbTransactions.append(StringUtil.getIndent(iIndent+2)).append("Balance Set: For: ").append(balanceEntry.getTenantName()).append(", $").append(balanceEntry.getBalance().toString().toString()).append("\n");
-					}
-				}
-				if (0 != sbTransactions.length())
-				{
-					sb.append(StringUtil.getIndent(iIndent+1)).append(entry.getDateString()).append(": ");
-					BalancesVisitor balancesVisitor = (BalancesVisitor)entry.getVisitor(BalancesVisitor.class);
-					if (null != balancesVisitor)
-					{
-						MoneyInteger total = balancesVisitor.getTotalBalance();
-						sb.append("Running Balance: ").append(", $").append(total.toString().toString()).append("\n");
-					}
-					sb.append(sbTransactions);
-				}
+				current.complete();
+				expenses = expenses.plus(current.getExpenses());
+				income = income.plus(current.getIncome());
+				expensesBilled = expensesBilled.plus(current.getBilledExpenses());
+			}
+			sb.append("Total ledger income:  ").append(income.toString()).append("\n");
+			sb.append("Total ledger expense: ").append(expenses.toString()).append("\n");
+			sb.append("Total --------------: ").append(income.minus(expenses).toString()).append("\n");
+			sb.append(StringUtil.getSpaces(1));
+			sb.append("(Negative value means paid MORE than deposited)\n\n");
+			sb.append("Total billed expense: ").append(expensesBilled.toString()).append("\n");
+			sb.append(StringUtil.getSpaces(1));
+			sb.append("(Should equal ledger expense)\n\n");
+			for (CashFlowDetails current : lDetails)
+			{
+				sb.append(current.report());
 			}
 		}
 		return sb.toString();

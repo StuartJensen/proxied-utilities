@@ -4,7 +4,7 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
 
-import com.pp.proxied.utilities.schema.Entry;
+import com.pp.proxied.utilities.register.schema.RegisterBaseEntry;
 
 public class Coverage
 {
@@ -13,7 +13,7 @@ public class Coverage
 		List<GenericDouble<Calendar, Integer>> lResult = new ArrayList<GenericDouble<Calendar, Integer>>();
 		Calendar currentDate = Calendar.getInstance();
 		currentDate.setTime(startDate.getTime());
-		while (0 >= Entry.compareMonthDayYear(currentDate, endDate))
+		while (0 >= RegisterBaseEntry.compareMonthDayYear(currentDate, endDate))
 		{
 			int iCoveredCount = 0;
 			for (GenericDouble<Calendar, Calendar> coverage : lCoveragePeriods)
@@ -38,7 +38,7 @@ public class Coverage
 		
 	public static boolean isIn(Calendar target, Calendar start, Calendar end)
 	{
-		return ((0 <= Entry.compareMonthDayYear(target, start)) && (0 >= Entry.compareMonthDayYear(target, end)));
+		return ((0 <= RegisterBaseEntry.compareMonthDayYear(target, start)) && (0 >= RegisterBaseEntry.compareMonthDayYear(target, end)));
 	}
 	
 	public static String toString(List<GenericDouble<Calendar, Integer>> lCoverage, int iIndent)
@@ -60,14 +60,14 @@ public class Coverage
 				{
 					if (iCurrentCoverage != coverage.second.intValue())
 					{
-						sb.append(StringUtil.getIndent(iIndent)).append(Entry.toString(start)).append(" - ").append(Entry.toString(end)).append(": Coverage: ").append(iCurrentCoverage).append("\n");
+						sb.append(StringUtil.getSpaces(iIndent)).append(RegisterBaseEntry.toString(start)).append(" - ").append(RegisterBaseEntry.toString(end)).append(": Coverage: ").append(iCurrentCoverage).append("\n");
 						start = coverage.first;
 						iCurrentCoverage = coverage.second.intValue();
 					}
 				}
 				end = coverage.first;
 			}
-			sb.append(StringUtil.getIndent(iIndent)).append(Entry.toString(start)).append(" - ").append(Entry.toString(end)).append(": Coverage: ").append(iCurrentCoverage).append("\n");
+			sb.append(StringUtil.getSpaces(iIndent)).append(RegisterBaseEntry.toString(start)).append(" - ").append(RegisterBaseEntry.toString(end)).append(": Coverage: ").append(iCurrentCoverage).append("\n");
 		}
 		return sb.toString();
 	}

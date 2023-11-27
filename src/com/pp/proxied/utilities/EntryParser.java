@@ -1,7 +1,5 @@
 package com.pp.proxied.utilities;
 
-import com.pp.proxied.utilities.util.StringUtil;
-
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
@@ -12,9 +10,10 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-import com.pp.proxied.utilities.schema.Entry;
-import com.pp.proxied.utilities.schema.EntryFactory;
-import com.pp.proxied.utilities.schema.TenantEntry;
+import com.pp.proxied.utilities.register.schema.EntryFactory;
+import com.pp.proxied.utilities.register.schema.RegisterBaseEntry;
+import com.pp.proxied.utilities.register.schema.TenantEntry;
+import com.pp.proxied.utilities.util.StringUtil;
 
 public class EntryParser
 {
@@ -34,10 +33,10 @@ public class EntryParser
 		fileReader.close();
 	}
 	
-	public List<Entry> parse()
+	public List<RegisterBaseEntry> parse()
 		throws ParseException, InvalidParameterException
 	{
-		List<Entry> lResult = new ArrayList<Entry>();
+		List<RegisterBaseEntry> lResult = new ArrayList<RegisterBaseEntry>();
 		for (String strLine : m_lEntries)
 		{
 			strLine = strLine.trim();
@@ -60,9 +59,9 @@ public class EntryParser
 		
 		// Set all Nths
 		int iNth = 0;
-		for (Entry entry : lResult)
+		for (RegisterBaseEntry registerBaseEntry : lResult)
 		{
-			entry.setNth(iNth++);
+			registerBaseEntry.setNth(iNth++);
 		}
 
 		return lResult;

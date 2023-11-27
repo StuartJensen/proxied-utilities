@@ -4,7 +4,7 @@ import java.security.InvalidParameterException;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.pp.proxied.utilities.schema.MoneyInteger;
+import com.pp.proxied.utilities.register.schema.MoneyInteger;
 
 public class Percentages
 {

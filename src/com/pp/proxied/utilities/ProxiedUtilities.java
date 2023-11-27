@@ -7,20 +7,19 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
 
+import com.pp.proxied.utilities.extra.paid.ExtraPaidManager;
 import com.pp.proxied.utilities.ledger.Ledger;
-import com.pp.proxied.utilities.reporting.ActiveTenantsVisitor;
-import com.pp.proxied.utilities.reporting.ApproximateReport;
-import com.pp.proxied.utilities.reporting.BalancesVisitor;
+import com.pp.proxied.utilities.register.Register;
+import com.pp.proxied.utilities.register.RegisterParser;
+import com.pp.proxied.utilities.register.schema.PayeeEntry;
+import com.pp.proxied.utilities.register.schema.RegisterBaseEntry;
+import com.pp.proxied.utilities.register.schema.TenantEntry;
+import com.pp.proxied.utilities.reporting.BalancesReport;
 import com.pp.proxied.utilities.reporting.CashFlowReport;
 import com.pp.proxied.utilities.reporting.CoverageReport;
-import com.pp.proxied.utilities.reporting.ExtraPaidReport;
-import com.pp.proxied.utilities.reporting.PaymentPercentageVisitor;
-import com.pp.proxied.utilities.reporting.PaymentsVisitor;
-import com.pp.proxied.utilities.reporting.SpecificPayeeReport;
-import com.pp.proxied.utilities.reporting.SpecificTenantReport;
-import com.pp.proxied.utilities.schema.Entry;
-import com.pp.proxied.utilities.schema.PayeeEntry;
-import com.pp.proxied.utilities.schema.TenantEntry;
+import com.pp.proxied.utilities.reporting.LedgerReport;
+import com.pp.proxied.utilities.reporting.PaymentsReport;
+import com.pp.proxied.utilities.reporting.RegisterReport;
 import com.pp.proxied.utilities.util.DateUtil;
 import com.pp.proxied.utilities.util.StringUtil;
 
@@ -32,17 +31,15 @@ public class ProxiedUtilities
 	private static final String ARG_TAG_INFILE = "-inFile";
 	private static final String ARG_TAG_OUTFILE = "-outFile";
 	private static final String ARG_TAG_REPORT = "-report";
-	private static final String ARG_TAG_PAYEE = "-payee";
-	private static final String ARG_TAG_TENANT = "-tenant";
+	private static final String ARG_TAG_TARGET = "-target";
 	
+	private static final String ARG_REPORT_TYPE_REGISTER = "register";
 	private static final String ARG_REPORT_TYPE_LEDGER = "ledger";
-	private static final String ARG_REPORT_TYPE_TENANT = "tenant";
-	private static final String ARG_REPORT_TYPE_PAYEE = "payee";
+	private static final String ARG_REPORT_TYPE_PAYMENTS = "payments";
 	private static final String ARG_REPORT_TYPE_BALANCES = "balances";
 	private static final String ARG_REPORT_TYPE_COVERAGE = "coverage";
 	private static final String ARG_REPORT_TYPE_EXTRA = "extra";
 	private static final String ARG_REPORT_TYPE_CASHFLOW = "cashflow";
-	private static final String ARG_REPORT_TYPE_APPROX = "approx";
 	
 	private static List<String> REPORT_TYPES;
 	private static List<String> REPORT_DESCRIPTIONS;
@@ -50,23 +47,21 @@ public class ProxiedUtilities
 	static
 	{
 		REPORT_TYPES = new ArrayList<String>();
+		REPORT_TYPES.add(ARG_REPORT_TYPE_REGISTER);
 		REPORT_TYPES.add(ARG_REPORT_TYPE_LEDGER);
-		REPORT_TYPES.add(ARG_REPORT_TYPE_TENANT);
-		REPORT_TYPES.add(ARG_REPORT_TYPE_PAYEE);
+		REPORT_TYPES.add(ARG_REPORT_TYPE_PAYMENTS);
 		REPORT_TYPES.add(ARG_REPORT_TYPE_BALANCES);
 		REPORT_TYPES.add(ARG_REPORT_TYPE_COVERAGE);
 		REPORT_TYPES.add(ARG_REPORT_TYPE_EXTRA);
 		REPORT_TYPES.add(ARG_REPORT_TYPE_CASHFLOW);
-		REPORT_TYPES.add(ARG_REPORT_TYPE_APPROX);
 		REPORT_DESCRIPTIONS = new ArrayList<String>();
-		REPORT_DESCRIPTIONS.add("A simple ledger regurgitation");
-		REPORT_DESCRIPTIONS.add("Details a specified tenant's activities. Requires " + ARG_TAG_TENANT + ".");
-		REPORT_DESCRIPTIONS.add("Details a specified payee's activities. Requires " + ARG_TAG_PAYEE + ".");
-		REPORT_DESCRIPTIONS.add("Details total and per tenant account balances each tine a transaction happens.");
-		REPORT_DESCRIPTIONS.add("Details payee service time coverage (1 is desirable) and total active tenants coverage (3 is desirable).");
-		REPORT_DESCRIPTIONS.add("Payments with odd amounts require one tenant to pay one cent extra. This extra payment should be rotated fairly among tenants. Details how much each tenant has paid in extra cents.");
-		REPORT_DESCRIPTIONS.add("Typical cash flow ledger report.");
-		REPORT_DESCRIPTIONS.add("Approximates the payments still owed by a MOVEOUT tenant to active payees. Requires " + ARG_TAG_TENANT + ".");
+		REPORT_DESCRIPTIONS.add("Details the register entries. May be filtered using a tenant or payee name as the target.");
+		REPORT_DESCRIPTIONS.add("Details the ledger entries. May be filtered using a tenant or payee name as the target.");
+		REPORT_DESCRIPTIONS.add("Details all active payments in the ledger.");
+		REPORT_DESCRIPTIONS.add("Details per tenant account balances for each ledger entry.");
+		REPORT_DESCRIPTIONS.add("Details payee service time coverage (1 is desirable) and total active tenants coverage.");
+		REPORT_DESCRIPTIONS.add("Details how many extra cents each tenant has paid. Daily payments can have mathmatical rounding issues such that one tenant must pay one cent extra. This extra payment should be rotated fairly among tenants.");
+		REPORT_DESCRIPTIONS.add("Details yearly ledger cash flow: Payments vs. Deposits.");
 	};
 	
 	private static String m_strReportType = null;
@@ -75,6 +70,8 @@ public class ProxiedUtilities
 	private static File m_fInputFile = null;
 	
 	public static SimpleDateFormat DAYHOUR_DATEFORMAT = new SimpleDateFormat("MM/dd/yyyy 'at' HH:mm:ss");
+	
+	private static List<RegisterBaseEntry> m_lEntries;
 	
 	public static void main(String[] args)
 	{
@@ -94,91 +91,102 @@ public class ProxiedUtilities
 		StringBuilder sb = new StringBuilder(2048);
 		try
 		{
-			EntryParser parser = new EntryParser(m_fInputFile);
-			List<Entry> lEntries = parser.parse();
+			RegisterParser parser = new RegisterParser(m_fInputFile);
+			m_lEntries = parser.parse();
 			
-			if ((null != lEntries) && (!lEntries.isEmpty()))
+			if ((null != m_lEntries) && (!m_lEntries.isEmpty()))
 			{
-				Ledger.validate(lEntries);
+				Register register = new Register(m_lEntries);
+				Ledger ledger = new Ledger(register);
 				
-				Ledger ledger = new Ledger(lEntries);
+				// Resolve target if there is one specified on the command line
+				RegisterBaseEntry target = null;
+				if (StringUtil.isDefined(m_strTarget))
+				{
+					target = resolveTarget(register, m_strTarget); 
+					if (null == target)
+					{
+						throw new IllegalStateException("Unresolvable target: " + m_strTarget + ". Neither a tenant nor a payee");
+					}
+				}
+				
 				Calendar today = Calendar.getInstance();
 				String strReportGenerationTime = DateUtil.getTime(DAYHOUR_DATEFORMAT, today.getTime().getTime());
-				sb.append("Report Generated on ").append(strReportGenerationTime).append("\n");
-				if (m_strReportType.equals(ARG_REPORT_TYPE_LEDGER))
+				sb.append(m_strReportType.toUpperCase()).append(" Report Generated on ").append(strReportGenerationTime).append("\n");
+				if (m_strReportType.equals(ARG_REPORT_TYPE_REGISTER))
 				{
-					sb.append(ledger.toString(0));
+					RegisterReport ep = new RegisterReport(ledger);
+					if ((target instanceof TenantEntry) ||
+						(target instanceof PayeeEntry))
+					{	// Target is a tenant/payee - create specific tenant/payee report
+						sb.append(ep.buildRegisterReport(target, 0));
+					}
+					else
+					{	// No target - create general register report			
+						sb.append(ep.buildRegisterReport(0));
+					}
+				}
+				else if (m_strReportType.equals(ARG_REPORT_TYPE_LEDGER))
+				{
+					LedgerReport lp = new LedgerReport(ledger);
+					if ((target instanceof TenantEntry) ||
+						(target instanceof PayeeEntry))
+					{	// Target is a tenant/payee - create specific tenant/payee report
+						sb.append(lp.buildLedgerReport(target, 0));
+					}
+					else
+					{	// No target - create general register report			
+						sb.append(lp.buildLedgerReport(0));
+					}
+				}
+				else if (m_strReportType.equals(ARG_REPORT_TYPE_EXTRA))
+				{
+					sb.append("Extra Cents Paid Report:\n").append(ExtraPaidManager.getInstance().buildExtraPaidReport(1));
+				}
+				else if (m_strReportType.equals(ARG_REPORT_TYPE_COVERAGE))
+				{
+					CoverageReport cr = new CoverageReport(ledger);
+					sb.append("Coverage Report:\n").append(cr.toString());
+				}
+				else if (m_strReportType.equals(ARG_REPORT_TYPE_BALANCES))
+				{
+					BalancesReport br = new BalancesReport(ledger);
+					sb.append("Balances Report:\n").append(br.toString());
+				}
+				else if (m_strReportType.equals(ARG_REPORT_TYPE_PAYMENTS))
+				{
+					PaymentsReport pr = new PaymentsReport(ledger);
+					sb.append("Payments Report:\n").append(pr.toString());
+				}
+				else if (m_strReportType.equals(ARG_REPORT_TYPE_CASHFLOW))
+				{
+					CashFlowReport cfr = new CashFlowReport(ledger);
+					sb.append("Cash Flow Report:\n").append(cfr.toString());
+				}
+				if (null == m_fOutputFile)
+				{
+					System.out.println(sb.toString());
 				}
 				else
 				{
-					ActiveTenantsVisitor activeTenantsRoot = new ActiveTenantsVisitor(); 
-					ledger.attach(activeTenantsRoot, true);
-					
-					PaymentPercentageVisitor paymentsPercentageRoot = new PaymentPercentageVisitor(); 
-					ledger.attach(paymentsPercentageRoot, true);
-					
-					PaymentsVisitor paymentsRoot = new PaymentsVisitor(); 
-					ledger.attach(paymentsRoot, true);
-					
-					BalancesVisitor balancesRoot = new BalancesVisitor(); 
-					ledger.attach(balancesRoot, true);
-					if (m_strReportType.equals(ARG_REPORT_TYPE_BALANCES))
-					{
-						sb.append("Balances:\n").append(ledger.toString(balancesRoot, 3));
-					}
-					else if (m_strReportType.equals(ARG_REPORT_TYPE_TENANT))
-					{
-						TenantEntry tenantEntry = Ledger.getTenantEntry(lEntries, m_strTarget);
-						SpecificTenantReport reportTenant = new SpecificTenantReport(ledger, tenantEntry);
-						sb.append("Tenant Report:\n").append(reportTenant.toString());
-					}
-					else if (m_strReportType.equals(ARG_REPORT_TYPE_PAYEE))
-					{
-						PayeeEntry payeeEntry = Ledger.getPayeeEntry(lEntries, m_strTarget);
-						SpecificPayeeReport reportPayee = new SpecificPayeeReport(ledger, payeeEntry);
-						sb.append("Payee Report:\n").append(reportPayee.toString(0));
-					}
-					else if (m_strReportType.equals(ARG_REPORT_TYPE_COVERAGE))
-					{
-						CoverageReport cr = new CoverageReport(ledger);
-						sb.append("Coverage Report:\n").append(cr.toString());
-					}
-					else if (m_strReportType.equals(ARG_REPORT_TYPE_EXTRA))
-					{
-						ExtraPaidReport report = new ExtraPaidReport(ledger);
-						sb.append(report.toString());
-					}
-					else if (m_strReportType.equals(ARG_REPORT_TYPE_CASHFLOW))
-					{
-						CashFlowReport report = new CashFlowReport(ledger);
-						sb.append(report.toString());
-					}
-					else if (m_strReportType.equals(ARG_REPORT_TYPE_APPROX))
-					{
-						TenantEntry tenantEntry = Ledger.getTenantEntry(lEntries, m_strTarget);
-						ApproximateReport report = new ApproximateReport(ledger, tenantEntry);
-						sb.append(report.toString());
-					}
+					FileWriter fileWriter = new FileWriter(m_fOutputFile);
+					String strWriteString = sb.toString();
+					fileWriter.write(strWriteString, 0, strWriteString.length());
+					fileWriter.close();
 				}
-			}
-			
-			if (null == m_fOutputFile)
-			{
-				System.out.println(sb.toString());
-			}
-			else
-			{
-				FileWriter fileWriter = new FileWriter(m_fOutputFile);
-				String strWriteString = sb.toString();
-				fileWriter.write(strWriteString, 0, strWriteString.length());
-				fileWriter.close();
 			}
 		}
 		catch (Exception e)
 		{
+			System.out.println("ERROR:\n" + e.toString());
 			e.printStackTrace();
 		}
 		System.exit(0);
+	}
+	
+	public static List<RegisterBaseEntry> getEntries()
+	{
+		return m_lEntries;
 	}
 	
 	private static void processArguments(String[] args)
@@ -186,45 +194,41 @@ public class ProxiedUtilities
 		int iArgsIdx = 0;
 		while (args.length > iArgsIdx)
 		{
-			String strTag = args[iArgsIdx];
+			String strTag = args[iArgsIdx++];
 			if (strTag.equals(ARG_TAG_INFILE))
 			{
-				m_fInputFile = new File(args[++iArgsIdx]);
+				atEnd("Input file name must follow '-infile' parameter.", iArgsIdx, args);
+				m_fInputFile = new File(args[iArgsIdx++]);
 				if (!m_fInputFile.exists())
 				{
-					showUsage("Entries file: " + args[iArgsIdx] + " does not exist");
+					showUsage("Entries file: " + m_fInputFile.getAbsolutePath()+ " does not exist");
 					System.exit(3);
 				}
-				iArgsIdx++;
 			}
 			else if (strTag.equals(ARG_TAG_OUTFILE))
 			{
-				m_fOutputFile = new File(args[++iArgsIdx]);
-				iArgsIdx++;
+				atEnd("Output file name must follow '-outfile' parameter.", iArgsIdx, args);
+				m_fOutputFile = new File(args[iArgsIdx++]);
 			}
 			else if (strTag.equals(ARG_TAG_REPORT))
 			{
-				m_strReportType = args[++iArgsIdx];
+				atEnd("Report type must follow 'report' parameter.", iArgsIdx, args);
+				m_strReportType = args[iArgsIdx++];
 				if (!REPORT_TYPES.contains(m_strReportType))
 				{
 					showUsage("Unrecognized report type: " + m_strReportType);
 					System.exit(3);
 				}
-				iArgsIdx++;
 			}
-			else if (strTag.equals(ARG_TAG_PAYEE))
+			else if (strTag.equals(ARG_TAG_TARGET))
 			{
-				m_strTarget = args[++iArgsIdx];
-				iArgsIdx++;
-			}
-			else if (strTag.equals(ARG_TAG_TENANT))
-			{
-				m_strTarget = args[++iArgsIdx];
+				atEnd("Tenant or payee name must follow '-target' parameter.", iArgsIdx, args);
+				m_strTarget = args[iArgsIdx];
 				iArgsIdx++;
 			}
 			else
 			{
-				showUsage("Unknown argument tag: " + args[iArgsIdx]);
+				showUsage("Unknown argument tag: " + strTag);
 				System.exit(3);
 			}
 		}
@@ -239,19 +243,33 @@ public class ProxiedUtilities
 			showUsage("Missing report type argument tag: " + ARG_TAG_REPORT);
 			System.exit(3);
 		}
-
-		if ((m_strReportType.equals(ARG_REPORT_TYPE_TENANT)) ||
-		    (m_strReportType.equals(ARG_REPORT_TYPE_PAYEE)))
+	}
+	
+	private static void atEnd(String strError, int iArgsIdx, String[] args)
+	{
+		if (iArgsIdx >= args.length)
 		{
-			if (args.length != ARGS_MAX_COUNT)
+			showUsage(strError);
+			System.exit(3);
+		}
+	}
+	
+	private static RegisterBaseEntry resolveTarget(Register register, String strTarget)
+	{
+		if (StringUtil.isDefined(strTarget))
+		{
+			TenantEntry tenantEntry = ExtraPaidManager.getInstance().getTenant(strTarget);
+			if (null != tenantEntry)
 			{
-				if (null == m_strTarget)
-				{
-					showUsage("Report type \"" + m_strReportType + "\" requires a tenant or a payee name");
-					System.exit(6);
-				}
+				return tenantEntry;
+			}
+			PayeeEntry payeeEntry = Register.getPayeeEntry(register.getEntries(), strTarget);
+			if (null != payeeEntry)
+			{
+				return payeeEntry;
 			}
 		}
+		return null;
 	}
 	
 	private static void showUsage(String strMessage)
@@ -274,16 +292,14 @@ public class ProxiedUtilities
 			System.out.println("    " + strReportName);
 			System.out.println("        " + strReportDescription);
 		}
-		System.out.println(ARG_TAG_PAYEE);
-		System.out.println("   The case-sensitive payee name. Accompanies report types that require a payee. Probably needs to be bound in dquotes.");
-		System.out.println(ARG_TAG_TENANT);
-		System.out.println("   The case-sensitive tenant name. Accompanies report types that require a tenant. Probably needs to be bound in dquotes.");
+		System.out.println(ARG_TAG_TARGET);
+		System.out.println("   The case-sensitive payee or tenant name. Accompanies register and ledger report types. Probably needs to be bound in dquotes.");
 		System.out.println("");
 		System.out.println("Examples:");
-		System.out.println("-inFile c:\\temp\\ledger.txt -outFile c:\\temp\\report.txt -report tenant -tenant \"Bethany Hardy\"");
-		System.out.println("   (will output tenant report to the indicated outFile)");
-		System.out.println("-inFile c:\\temp\\ledger.txt -report payee -payee \"Dominion Energy\"");
-		System.out.println("   (will output payee report to stdout)");
+		System.out.println("-inFile c:\\temp\\ledger.txt -outFile c:\\temp\\report.txt -report ledger -target \"Jane Austin\"");
+		System.out.println("   (will output ledger report, filtered by tenant, to the indicated outFile)");
+		System.out.println("-inFile c:\\temp\\ledger.txt -report ledger -target \"Dominion Energy\"");
+		System.out.println("   (will output ledger report, filtered by payee, to stdout)");
 		System.out.println("-inFile c:\\temp\\ledger.txt -report coverage");
 		System.out.println("   (will output coverage report to stdout)");
 	}

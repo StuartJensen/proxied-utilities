@@ -4,43 +4,58 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
 
-import com.pp.proxied.utilities.reporting.BalancesVisitor;
-import com.pp.proxied.utilities.reporting.PaymentsVisitor;
-import com.pp.proxied.utilities.schema.BalanceEntry;
-import com.pp.proxied.utilities.schema.DepositEntry;
-import com.pp.proxied.utilities.schema.Entry;
-import com.pp.proxied.utilities.schema.FlushEntry;
-import com.pp.proxied.utilities.schema.MoneyInteger;
-import com.pp.proxied.utilities.schema.MoveOutEntry;
-import com.pp.proxied.utilities.schema.PayeeEntry;
-import com.pp.proxied.utilities.schema.PaymentEntry;
-import com.pp.proxied.utilities.schema.RemoveEntry;
-import com.pp.proxied.utilities.schema.TenantEntry;
-import com.pp.proxied.utilities.util.CollectionUtil;
+import com.pp.proxied.utilities.ledger.schema.ActivePayment;
+import com.pp.proxied.utilities.ledger.schema.ActivePayments;
+import com.pp.proxied.utilities.ledger.schema.ActiveTenant;
+import com.pp.proxied.utilities.ledger.schema.ActiveTenantPayment;
+import com.pp.proxied.utilities.ledger.schema.ActiveTenants;
+import com.pp.proxied.utilities.ledger.schema.PassiveTenant;
+import com.pp.proxied.utilities.ledger.schema.PassiveTenants;
+import com.pp.proxied.utilities.ledger.schema.RegisterBalances;
+import com.pp.proxied.utilities.ledger.schema.RegisterDeposits;
+import com.pp.proxied.utilities.ledger.schema.RegisterFlushes;
+import com.pp.proxied.utilities.ledger.schema.RegisterMoveOuts;
+import com.pp.proxied.utilities.ledger.schema.RegisterPayees;
+import com.pp.proxied.utilities.ledger.schema.RegisterPayments;
+import com.pp.proxied.utilities.ledger.schema.RegisterRemoves;
+import com.pp.proxied.utilities.ledger.schema.RegisterTenants;
+import com.pp.proxied.utilities.register.schema.BalanceEntry;
+import com.pp.proxied.utilities.register.schema.DepositEntry;
+import com.pp.proxied.utilities.register.schema.FlushEntry;
+import com.pp.proxied.utilities.register.schema.MoveOutEntry;
+import com.pp.proxied.utilities.register.schema.PayeeEntry;
+import com.pp.proxied.utilities.register.schema.PaymentEntry;
+import com.pp.proxied.utilities.register.schema.RegisterBaseEntry;
+import com.pp.proxied.utilities.register.schema.RemoveEntry;
+import com.pp.proxied.utilities.register.schema.TenantEntry;
 import com.pp.proxied.utilities.util.DateUtil;
-import com.pp.proxied.utilities.util.ObjectUtil;
-import com.pp.proxied.utilities.util.PaymentDetails;
-import com.pp.proxied.utilities.util.StringUtil;
+import com.pp.proxied.utilities.util.GenericDouble;
 
 public class LedgerEntry
 {
-	private int m_iNthEntryInLedger;
-	private List<TenantEntry> m_lActiveTenants;
-	private List<PayeeEntry> m_lActivePayees;
-	private List<BalanceEntry> m_lActiveBalances;
-	private List<PaymentEntry> m_lActivePayments;
-	private List<DepositEntry> m_lActiveDeposits;
-	private List<MoveOutEntry> m_lActiveMoveOuts;
-	private List<RemoveEntry> m_lActiveRemoves;
-	private List<FlushEntry> m_lActiveFlushes;
+	private int m_iNth;
 	private Calendar m_date;
 	
-	private List<LedgerEntryVisitor> m_lVisitors;
+	private RegisterTenants m_registerTenants;
+	private RegisterPayees m_registerPayees;
+	private RegisterBalances m_registerBalances;
+	private RegisterPayments m_registerPayments;
+	private RegisterDeposits m_registerDeposits;
+	private RegisterMoveOuts m_registerMoveOuts;
+	private RegisterRemoves m_registerRemoves;
+	private RegisterFlushes m_registerFlushes;
 	
-	public LedgerEntry(Calendar date, int iNthEntryInLedger)
+	private LedgerEntry m_previousEntry;
+	private LedgerEntry m_nextEntry;
+	
+	private ActiveTenants m_activeTenants;
+	private PassiveTenants m_passiveTenants;
+	private ActivePayments m_activePayments;
+	
+	public LedgerEntry(int iNthEntryInLedger, Calendar date)
 	{
+		m_iNth = iNthEntryInLedger;
 		m_date = date;
-		m_iNthEntryInLedger = iNthEntryInLedger;
 	}
 	
 	public Calendar getDate()
@@ -52,469 +67,312 @@ public class LedgerEntry
 	
 	public String getDateString()
 	{
-		return DateUtil.getTime(Entry.STANDARD_DATEFORMAT, m_date.getTimeInMillis());
+		return DateUtil.getTime(RegisterBaseEntry.STANDARD_DATEFORMAT, m_date.getTimeInMillis());
 	}
 	
-	public int getNthEntryInledger()
+	public int getNth()
 	{
-		return m_iNthEntryInLedger;
+		return m_iNth;
+	}
+	
+	public void setPreviousEntry(LedgerEntry previousEntry)
+	{
+		m_previousEntry = previousEntry;
+	}
+	
+	public LedgerEntry getPreviousEntry()
+	{
+		return m_previousEntry;
+	}
+	
+	public void setNextEntry(LedgerEntry nextEntry)
+	{
+		m_nextEntry = nextEntry;
+	}
+	
+	public LedgerEntry getNextEntry()
+	{
+		return m_nextEntry;
 	}
 	
 	public boolean isBefore(Calendar that)
 	{
-		return (0 > Entry.compareMonthDayYear(getDate(), that));
+		return (0 > RegisterBaseEntry.compareMonthDayYear(getDate(), that));
 	}
 	
 	public boolean isOnOrBefore(Calendar that)
 	{
-		return (0 >= Entry.compareMonthDayYear(getDate(), that));
+		return (0 >= RegisterBaseEntry.compareMonthDayYear(getDate(), that));
 	}
 	
 	public boolean isAfter(Calendar that)
 	{
-		return (0 < Entry.compareMonthDayYear(getDate(), that));
+		return (0 < RegisterBaseEntry.compareMonthDayYear(getDate(), that));
 	}
 	
 	public boolean isOnOrAfter(Calendar that)
 	{
-		return (0 <= Entry.compareMonthDayYear(getDate(), that));
+		return (0 <= RegisterBaseEntry.compareMonthDayYear(getDate(), that));
 	}
 	
 	public boolean isOn(Calendar that)
 	{
-		return (0 == Entry.compareMonthDayYear(getDate(), that));
-	}
-
-	public void addTenant(TenantEntry tenant)
-	{
-		if (null == m_lActiveTenants)
-		{
-			m_lActiveTenants = new ArrayList<TenantEntry>();
-		}
-		m_lActiveTenants.add(tenant);
+		return (0 == RegisterBaseEntry.compareMonthDayYear(getDate(), that));
 	}
 	
-	public List<TenantEntry> getActiveTenants()
+	public void addTenant(TenantEntry tenant)
 	{
-		return m_lActiveTenants;
+		if (null == m_registerTenants)
+		{
+			m_registerTenants = new RegisterTenants();
+		}
+		m_registerTenants.add(tenant);
+	}
+	
+	public RegisterTenants getRegisterTenants()
+	{
+		return m_registerTenants;
 	}
 
 	public void addMoveOut(MoveOutEntry moveOut)
 	{
-		if (null == m_lActiveMoveOuts)
+		if (null == m_registerMoveOuts)
 		{
-			m_lActiveMoveOuts = new ArrayList<MoveOutEntry>();
+			m_registerMoveOuts = new RegisterMoveOuts();
 		}
-		m_lActiveMoveOuts.add(moveOut);
+		m_registerMoveOuts.add(moveOut);
 	}
 	
-	public List<MoveOutEntry> getActiveMoveOuts()
+	public RegisterMoveOuts getRegisterMoveOuts()
 	{
-		return m_lActiveMoveOuts;
+		return m_registerMoveOuts;
 	}
 	
 	public void addPayee(PayeeEntry payee)
 	{
-		if (null == m_lActivePayees)
+		if (null == m_registerPayees)
 		{
-			m_lActivePayees = new ArrayList<PayeeEntry>();
+			m_registerPayees = new RegisterPayees();
 		}
-		m_lActivePayees.add(payee);
+		m_registerPayees.add(payee);
 	}
 	
-	public List<PayeeEntry> getActivePayees()
+	public RegisterPayees getRegisterPayees()
 	{
-		return m_lActivePayees;
+		return m_registerPayees;
 	}
 	
 	public void addBalance(BalanceEntry balance)
 	{
-		if (null == m_lActiveBalances)
+		if (null == m_registerBalances)
 		{
-			m_lActiveBalances = new ArrayList<BalanceEntry>();
+			m_registerBalances = new RegisterBalances();
 		}
-		m_lActiveBalances.add(balance);
+		m_registerBalances.add(balance);
 	}
 	
-	public List<BalanceEntry> getActiveBalances()
+	public RegisterBalances getRegisterBalances()
 	{
-		return m_lActiveBalances;
+		return m_registerBalances;
 	}
 	
-	public void addPayment(PaymentEntry payment)
+	public BalanceEntry getRegisterBalance(TenantEntry target)
 	{
-		if (null == m_lActivePayments)
+		if ((null != m_registerBalances) && (!m_registerBalances.isEmpty()))
 		{
-			m_lActivePayments = new ArrayList<PaymentEntry>();
-		}
-		m_lActivePayments.add(payment);
-	}
-	
-	public List<PaymentEntry> getActivePayments()
-	{
-		return m_lActivePayments;
-	}
-	
-	public List<PaymentEntry> getActivePayments(PayeeEntry payeeEntry)
-	{
-		List<PaymentEntry> lResult = new ArrayList<PaymentEntry>();
-		List<PaymentEntry> lActivePayments = getActivePayments();
-		if (null != lActivePayments)
-		{
-			for (PaymentEntry payment : lActivePayments)
-			{
-				if (payeeEntry.getPayeeName().equals(payment.getAssociatedPayeeEntry().getPayeeName()))
-				{
-					lResult.add(payment);
-				}
-			}
-		}
-		return lResult;
-	}
-
-	public void addDeposit(DepositEntry deposit)
-	{
-		if (null == m_lActiveDeposits)
-		{
-			m_lActiveDeposits = new ArrayList<DepositEntry>();
-		}
-		m_lActiveDeposits.add(deposit);
-	}
-	
-	public List<DepositEntry> getActiveDeposits()
-	{
-		return m_lActiveDeposits;
-	}
-	
-	public void addRemove(RemoveEntry remove)
-	{
-		if (null == m_lActiveRemoves)
-		{
-			m_lActiveRemoves = new ArrayList<RemoveEntry>();
-		}
-		m_lActiveRemoves.add(remove);
-	}
-	
-	public List<RemoveEntry> getActiveRemoves()
-	{
-		return m_lActiveRemoves;
-	}
-	
-	public void addFlush(FlushEntry flush)
-	{
-		if (null == m_lActiveFlushes)
-		{
-			m_lActiveFlushes = new ArrayList<FlushEntry>();
-		}
-		m_lActiveFlushes.add(flush);
-	}
-	
-	public List<FlushEntry> getActiveFlushes()
-	{
-		return m_lActiveFlushes;
-	}
-	
-	public void add(LedgerEntryVisitor visitor)
-	{
-		if (null == m_lVisitors)
-		{
-			m_lVisitors = new ArrayList<LedgerEntryVisitor>();
-		}
-		m_lVisitors.add(visitor);
-	}
-	
-	public LedgerEntryVisitor getVisitor(Class clazz)
-	{
-		if (null != m_lVisitors)
-		{
-			for (LedgerEntryVisitor candidate : m_lVisitors)
-			{
-				if (candidate.getClass().isAssignableFrom(clazz))
-				{
-					return candidate;
-				}
-			}
-			m_lVisitors = new ArrayList<LedgerEntryVisitor>();
+			return m_registerBalances.getRegisterBalance(target);
 		}
 		return null;
 	}
 	
-	public String toString(PayeeEntry payeeEntry, int iIndent)
+	public void addPayment(PaymentEntry payment)
 	{
-		StringBuilder sb = new StringBuilder();
-		if (null != m_lActivePayees)
+		if (null == m_registerPayments)
 		{
-			for (PayeeEntry payee : m_lActivePayees)
-			{
-				if (payeeEntry.getPayeeName().equals(payee.getPayeeName()))
-				{
-					sb.append(StringUtil.getIndent(iIndent + 2)).append("Activated as a Payee\n");
-				}
-			}
+			m_registerPayments = new RegisterPayments();
 		}
-		if (null != m_lActiveRemoves)
-		{
-			for (RemoveEntry remove : m_lActiveRemoves)
-			{
-				if (payeeEntry.getPayeeName().equals(remove.getTargetName()))
-				{
-					sb.append(StringUtil.getIndent(iIndent + 2)).append("De-Activated as a Payee (Removed)\n");
-				}
-			}
-		}
-		if (null != m_lActivePayments)
-		{
-			for (PaymentEntry payment : m_lActivePayments)
-			{
-				if (payeeEntry.getPayeeName().equals(payment.getAssociatedPayeeEntry().getPayeeName()))
-				{
-					PaymentsVisitor paymentsVisitor = (PaymentsVisitor)getVisitor(PaymentsVisitor.class);
-					if (null != paymentsVisitor)
-					{
-						List<PaymentDetails> lDetails = paymentsVisitor.getPaymentDetails(payment);
-						if (null != lDetails)
-						{
-							sb.append(StringUtil.getIndent(iIndent + 2)).append("Payment: Total: ").append(payment.getAmount().toString()).append(", Service Period: ").append(Entry.toString(payment.getStartDate())).append(" to ").append(Entry.toString(payment.getEndDate())).append("\n");
-							for (PaymentDetails details : lDetails)
-							{
-								sb.append(StringUtil.getIndent(iIndent + 3)).append("From: ").append(details.getTenantEntry().getTenantName()).append(": ").append(details.getPercentage()).append("%, Amount: ").append(details.getAmountDisplayName()).append("\n");
-							}
-						}
-					}
-				}
-			}
-		}
-		if (0 != sb.length())
-		{
-			StringBuilder sbWrapper = new StringBuilder();
-			StringUtil.toString(sbWrapper, "Date", DateUtil.getTime(Entry.STANDARD_DATEFORMAT, getDate()), iIndent + 1);
-			sbWrapper.append(sb.toString());
-			return sbWrapper.toString();
-		}
-		return "";
+		m_registerPayments.add(payment);
+	}
+	
+	public RegisterPayments getRegisterPayments()
+	{
+		return m_registerPayments;
 	}
 
-	
-	public String toString(TenantEntry tenantEntry, int iIndent)
+	public void addDeposit(DepositEntry deposit)
 	{
-		StringBuilder sb = new StringBuilder();
-		if (null != m_lActiveTenants)
+		if (null == m_registerDeposits)
 		{
-			for (TenantEntry tenant : m_lActiveTenants)
-			{
-				if (tenantEntry.getTenantName().equals(tenant.getTenantName()))
-				{
-					sb.append(StringUtil.getIndent(iIndent + 2)).append("Activated as a Tenant\n");
-				}
-			}
+			m_registerDeposits = new RegisterDeposits();
 		}
-		if (null != m_lActiveMoveOuts)
-		{
-			for (MoveOutEntry moveOut : m_lActiveMoveOuts)
-			{
-				if (tenantEntry.getTenantName().equals(moveOut.getTenantName()))
-				{
-					sb.append(StringUtil.getIndent(iIndent + 2)).append("De-Activated as a Tenant (Move Out)\n");
-				}
-			}
-		}
-		if (null != m_lActiveRemoves)
-		{
-			for (RemoveEntry remove : m_lActiveRemoves)
-			{
-				if (tenantEntry.getTenantName().equals(remove.getTargetName()))
-				{
-					sb.append(StringUtil.getIndent(iIndent + 2)).append("Removed as a Tenant (Removed)\n");
-				}
-			}
-		}
-		if (null != m_lActiveBalances)
-		{
-			for (BalanceEntry balance : m_lActiveBalances)
-			{
-				if (tenantEntry.getTenantName().equals(balance.getTenantName()))
-				{
-					sb.append(StringUtil.getIndent(iIndent + 2)).append("Balance set to: ").append(balance.getBalance().toString()).append("\n");
-				}
-			}
-		}
-		if (null != m_lActiveFlushes)
-		{
-			for (FlushEntry flush : m_lActiveFlushes)
-			{
-				if ((tenantEntry.getTenantName().equals(flush.getFromTenantName())) ||
-					(tenantEntry.getTenantName().equals(flush.getToTenantName())))
-				{
-					sb.append(StringUtil.getIndent(iIndent + 2)).append("Flush: From: ").append(flush.getFromTenantName()).append(" to ").append(flush.getToTenantName()).append("\n");
-				}
-			}
-		}
-		if (null != m_lActivePayments)
-		{
-			for (PaymentEntry payment : m_lActivePayments)
-			{
-				PaymentsVisitor paymentsVisitor = (PaymentsVisitor)getVisitor(PaymentsVisitor.class);
-				if (null != paymentsVisitor)
-				{
-					PaymentDetails details = paymentsVisitor.getPaymentDetails(payment, tenantEntry);
-					if (null != details)
-					{
-						int iPayeeCount = paymentsVisitor.getPaymentPayeeCount(payment);
-						sb.append(StringUtil.getIndent(iIndent + 2)).append("Paid: ").append(payment.getPayeeName()).append(": $").append(details.getAmountDisplayName());
-						sb.append(" of $").append(payment.getAmountDisplayName()).append(": Tenants Paying: ").append(iPayeeCount).append(", Service Period: ");
-						sb.append(details.getPercentage()).append("% of ").append(Entry.getDateString(payment.getStartDate())).append(" - ").append(Entry.getDateString(payment.getEndDate())).append("\n");
-					}
-				}
-			}
-		}
-		if (null != m_lActiveDeposits)
-		{
-			for (DepositEntry deposit : m_lActiveDeposits)
-			{
-				if (tenantEntry.getTenantName().equals(deposit.getTenantName()))
-				{
-					sb.append(StringUtil.getIndent(iIndent + 2)).append("Deposited: ").append(deposit.getAmount().toString()).append("\n");
-				}
-			}
-		}
-		if (0 != sb.length())
-		{
-			BalancesVisitor balancesVisitor = (BalancesVisitor)getVisitor(BalancesVisitor.class);
-			if (null != balancesVisitor)
-			{
-				MoneyInteger balance = balancesVisitor.getBalance(tenantEntry);
-				if (null != balance)
-				{
-					sb.append(StringUtil.getIndent(iIndent + 2)).append("Balance: ").append(balance.toString()).append("\n");
-				}
-			}
-			StringBuilder sbWrapper = new StringBuilder();
-			StringUtil.toString(sbWrapper, "Date", DateUtil.getTime(Entry.STANDARD_DATEFORMAT, getDate()), iIndent + 1);
-			sbWrapper.append(sb.toString());
-			return sbWrapper.toString();
-		}
-		return "";
+		m_registerDeposits.add(deposit);
 	}
 	
-	public String toString(int iIndent)
+	public RegisterDeposits getRegisterDeposits()
 	{
-		StringBuilder sb = new StringBuilder();
-		sb.append(StringUtil.getIndent(iIndent)).append(getClass().getSimpleName()).append("\n");
-		StringUtil.toString(sb, "Date", DateUtil.getTime(Entry.STANDARD_DATEFORMAT, getDate()), iIndent + 1);
-		if (null != m_lActiveTenants)
-		{
-			StringUtil.toString(sb, "Tenants", m_lActiveTenants.size(), iIndent + 1);
-			for (TenantEntry tenant : m_lActiveTenants)
-			{
-				sb.append(StringUtil.getIndent(iIndent + 2)).append("Tenant: ").append(tenant.getTenantName()).append("\n");
-			}
-		}
-		if (null != m_lActiveMoveOuts)
-		{
-			StringUtil.toString(sb, "MoveOuts", m_lActiveMoveOuts.size(), iIndent + 1);
-			for (MoveOutEntry moveOut : m_lActiveMoveOuts)
-			{
-				sb.append(StringUtil.getIndent(iIndent + 2)).append("Tenant: ").append(moveOut.getTenantName()).append("\n");
-			}
-		}
-		if (null != m_lActivePayees)
-		{
-			StringUtil.toString(sb, "Payees", m_lActivePayees.size(), iIndent + 1);
-			for (PayeeEntry payee : m_lActivePayees)
-			{
-				sb.append(StringUtil.getIndent(iIndent + 2)).append("Payee: ").append(payee.getPayeeName()).append("\n");
-			}
-		}
-		if (null != m_lActiveBalances)
-		{
-			StringUtil.toString(sb, "Balances", m_lActiveBalances.size(), iIndent + 1);
-			for (BalanceEntry balance : m_lActiveBalances)
-			{
-				sb.append(StringUtil.getIndent(iIndent + 2)).append("Balance: ").append(balance.getTenantName()).append(", Amount: ").append(balance.getBalance()).append("\n");
-			}
-		}
-		if (null != m_lActivePayments)
-		{
-			StringUtil.toString(sb, "Payments", m_lActivePayments.size(), iIndent + 1);
-			for (PaymentEntry payment : m_lActivePayments)
-			{
-				sb.append(StringUtil.getIndent(iIndent + 2)).append("Payment: ").append(payment.getPayeeName()).append(", Amount: ").append(payment.getAmount()).append(", Start: ").append(Entry.toString(payment.getStartDate())).append(", End: ").append(Entry.toString(payment.getEndDate())).append("\n");
-			}
-		}
-		if (null != m_lActiveDeposits)
-		{
-			StringUtil.toString(sb, "Deposits", m_lActiveDeposits.size(), iIndent + 1);
-			for (DepositEntry deposit : m_lActiveDeposits)
-			{
-				sb.append(StringUtil.getIndent(iIndent + 2)).append("Deposit: ").append(deposit.getTenantName()).append(", Amount: ").append(deposit.getAmount()).append("\n");
-			}
-		}
-		if (null != m_lActiveFlushes)
-		{
-			StringUtil.toString(sb, "Flushes", m_lActiveFlushes.size(), iIndent + 1);
-			for (FlushEntry flush : m_lActiveFlushes)
-			{
-				sb.append(StringUtil.getIndent(iIndent + 2)).append("Flush: From: ").append(flush.getFromTenantName()).append(" to ").append(flush.getToTenantName()).append("\n");
-			}
-		}
-		if (null != m_lActiveRemoves)
-		{
-			StringUtil.toString(sb, "Removes", m_lActiveRemoves.size(), iIndent + 1);
-			for (RemoveEntry remove : m_lActiveRemoves)
-			{
-				sb.append(StringUtil.getIndent(iIndent + 2)).append("Target: ").append(remove.getTargetName()).append("\n");
-			}
-		}
-		return sb.toString();
+		return m_registerDeposits;
 	}
 	
-	@Override
-	public String toString()
+	public DepositEntry getRegisterDeposit(TenantEntry target)
 	{
-		return toString(0);
-	}
-	
-	@Override
-	public int hashCode()
-	{
-		int iCode = 37;
-		iCode = iCode * 37 + (getActiveTenants() != null ? getActiveTenants().hashCode() : 0);
-		iCode = iCode * 37 + (getActivePayees() != null ? getActivePayees().hashCode() : 0);
-		iCode = iCode * 37 + (getActiveBalances() != null ? getActiveBalances().hashCode() : 0);
-		iCode = iCode * 37 + (getActivePayments() != null ? getActivePayments().hashCode() : 0);
-		iCode = iCode * 37 + (getActiveDeposits() != null ? getActiveDeposits().hashCode() : 0);
-		iCode = iCode * 37 + (getActiveMoveOuts() != null ? getActiveMoveOuts().hashCode() : 0);
-		iCode = iCode * 37 + (getActiveRemoves() != null ? getActiveRemoves().hashCode() : 0);
-		iCode = iCode * 37 + (getActiveFlushes() != null ? getActiveFlushes().hashCode() : 0);
-		iCode = iCode * 37 + (getDate() != null ? getDate().hashCode() : 0);
-		return iCode;
-	}
-	
-	@Override
-	public boolean equals(Object that)
-	{
-		if (super.equals(that))
+		if ((null != getRegisterDeposits()) && (!getRegisterDeposits().isEmpty()))
 		{
-			if (that instanceof LedgerEntry)
+			return getRegisterDeposits().getDeposit(target);
+		}
+		return null;
+	}
+	
+	public void addRemove(RemoveEntry remove)
+	{
+		if (null == m_registerRemoves)
+		{
+			m_registerRemoves = new RegisterRemoves();
+		}
+		m_registerRemoves.add(remove);
+	}
+	
+	public RegisterRemoves getRegisterRemoves()
+	{
+		return m_registerRemoves;
+	}
+	
+	public RemoveEntry getRegisterRemove(TenantEntry target)
+	{
+		if ((null != getRegisterRemoves()) && (!getRegisterRemoves().isEmpty()))
+		{
+			return getRegisterRemoves().getRemove(target);
+		}
+		return null;
+	}
+	
+	public void addFlush(FlushEntry flush)
+	{
+		if (null == m_registerFlushes)
+		{
+			m_registerFlushes = new RegisterFlushes();
+		}
+		m_registerFlushes.add(flush);
+	}
+	
+	public RegisterFlushes getRegisterFlushes()
+	{
+		return m_registerFlushes;
+	}
+	
+	public void addActiveTenant(ActiveTenant tenant)
+	{
+		if (null == m_activeTenants)
+		{
+			m_activeTenants = new ActiveTenants();
+		}
+		m_activeTenants.add(tenant);
+	}
+	
+	public ActiveTenants getActiveTenants()
+	{
+		return m_activeTenants;
+	}
+	
+	public ActiveTenant getActiveTenant(TenantEntry target)
+	{
+		if (null != getActiveTenants())
+		{
+			return getActiveTenants().getActiveTenant(target);
+		}
+		return null;
+	}
+	
+	public void setActiveTenants(ActiveTenants activeTenants)
+	{
+		m_activeTenants = activeTenants;
+	}
+
+	public void addPassiveTenant(PassiveTenant tenant)
+	{
+		if (null == m_passiveTenants)
+		{
+			m_passiveTenants = new PassiveTenants();
+		}
+		m_passiveTenants.add(tenant);
+	}
+	
+	public PassiveTenants getPassiveTenants()
+	{
+		return m_passiveTenants;
+	}
+	
+	public PassiveTenant getPassiveTenant(TenantEntry target)
+	{
+		if (null != getPassiveTenants())
+		{
+			return getPassiveTenants().getPassiveTenant(target);
+		}
+		return null;
+	}
+	
+	public void setPassiveTenants(PassiveTenants passiveTenants)
+	{
+		m_passiveTenants = passiveTenants;
+	}
+
+	public void addActivePayment(ActivePayment tenant)
+	{
+		if (null == m_activePayments)
+		{
+			m_activePayments = new ActivePayments();
+		}
+		m_activePayments.add(tenant);
+	}
+	
+	public ActivePayments getActivePayments()
+	{
+		return m_activePayments;
+	}
+	
+	public ActivePayment getActivePayment(PaymentEntry target)
+	{
+		if ((null != getActivePayments()) && (!getActivePayments().isEmpty()))
+		{
+			for (ActivePayment activePayment : getActivePayments().getActivePayments())
 			{
-				if (this == that)
-				{	// Same instance
-					return true;
-				}
-				if ((CollectionUtil.equals(getActiveTenants(), ((LedgerEntry)that).getActiveTenants())) &&
-					(CollectionUtil.equals(getActivePayees(), ((LedgerEntry)that).getActivePayees())) &&
-					(CollectionUtil.equals(getActiveBalances(), ((LedgerEntry)that).getActiveBalances())) &&
-					(CollectionUtil.equals(getActivePayments(), ((LedgerEntry)that).getActivePayments())) &&
-					(CollectionUtil.equals(getActiveDeposits(), ((LedgerEntry)that).getActiveDeposits())) &&
-					(CollectionUtil.equals(getActiveMoveOuts(), ((LedgerEntry)that).getActiveMoveOuts())) &&
-					(CollectionUtil.equals(getActiveRemoves(), ((LedgerEntry)that).getActiveRemoves())) &&
-					(CollectionUtil.equals(getActiveFlushes(), ((LedgerEntry)that).getActiveFlushes())) &&
-					(ObjectUtil.areReferencesEqual(getDate(), ((LedgerEntry)that).getDate())))			
+				if (activePayment.getPayment().equals(target))
 				{
-					return true;
+					return activePayment;
 				}
 			}
 		}
-		return false;
+		return null;
+	}
+	
+	public List<GenericDouble<ActivePayment, ActiveTenantPayment>> getActiveTenantPayments(TenantEntry target)
+	{
+		List<GenericDouble<ActivePayment, ActiveTenantPayment>> lResults = new ArrayList<GenericDouble<ActivePayment, ActiveTenantPayment>>();
+		if ((null != getActivePayments()) && (!getActivePayments().isEmpty()))
+		{
+			for (ActivePayment activePayment : getActivePayments().getActivePayments())
+			{
+				ActiveTenantPayment activeTenantPayment = activePayment.getActiveTenantPayment(target);
+				if (null != activeTenantPayment)
+				{
+					lResults.add(new GenericDouble<ActivePayment, ActiveTenantPayment>(activePayment, activeTenantPayment));
+				}
+			}
+		}
+		return lResults;
+	}
+	
+	public List<ActiveTenantPayment> getActiveTenantPayments(PayeeEntry payee)
+	{
+		List<ActiveTenantPayment> lResults = new ArrayList<ActiveTenantPayment>();
+		if ((null != getActivePayments()) && (!getActivePayments().isEmpty()))
+		{
+			lResults.addAll(getActivePayments().getActiveTenantPayments(payee));
+		}
+		return lResults;
+	}
+	
+	public void setActivePayments(ActivePayments activePayments)
+	{
+		m_activePayments = activePayments;
 	}
 }

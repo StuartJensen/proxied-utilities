@@ -6,16 +6,16 @@ import java.util.List;
 
 import com.pp.proxied.utilities.ledger.Ledger;
 import com.pp.proxied.utilities.ledger.LedgerEntry;
-import com.pp.proxied.utilities.schema.Entry;
-import com.pp.proxied.utilities.schema.PayeeEntry;
-import com.pp.proxied.utilities.schema.PaymentEntry;
-import com.pp.proxied.utilities.schema.RemoveEntry;
+import com.pp.proxied.utilities.ledger.schema.RegisterPayees;
+import com.pp.proxied.utilities.ledger.schema.RegisterPayments;
+import com.pp.proxied.utilities.register.schema.PayeeEntry;
+import com.pp.proxied.utilities.register.schema.PaymentEntry;
+import com.pp.proxied.utilities.register.schema.RegisterBaseEntry;
+import com.pp.proxied.utilities.register.schema.RemoveEntry;
 import com.pp.proxied.utilities.util.Coverage;
-import com.pp.proxied.utilities.util.DateUtil;
-
 import com.pp.proxied.utilities.util.GenericDouble;
-import com.pp.proxied.utilities.util.GenericTriple;
 import com.pp.proxied.utilities.util.StringUtil;
+import com.pp.proxied.utilities.util.GenericTriple;
 
 public class CoverageReport
 {
@@ -31,9 +31,10 @@ public class CoverageReport
 		{
 			for (LedgerEntry entry : ledgerEntries)
 			{
-				List<PayeeEntry> lPayees = entry.getActivePayees();
-				if ((null != lPayees) &&(!lPayees.isEmpty()))
+				RegisterPayees registerPayees = entry.getRegisterPayees();
+				if ((null != registerPayees) && (!registerPayees.isEmpty()))
 				{
+					List<PayeeEntry> lPayees = registerPayees.getPayees();
 					m_lAllPayees.addAll(lPayees);
 				}
 			}
@@ -50,17 +51,25 @@ public class CoverageReport
 		{
 			// Examine service coverage
 			List<GenericDouble<Calendar, Calendar>> lPeriods = new ArrayList<GenericDouble<Calendar, Calendar>>();
-			for (LedgerEntry entry : m_ledger.getLedgerEntries())
+			List<LedgerEntry> ledgerEntries = m_ledger.getLedgerEntries();
+			if ((null != ledgerEntries) && (!ledgerEntries.isEmpty()))
 			{
-				List<PaymentEntry> lPayments = entry.getActivePayments(payeeEntry);
-				for (PaymentEntry payment : lPayments)
+				for (LedgerEntry entry : ledgerEntries)
 				{
-					lPeriods.add(new GenericDouble<Calendar, Calendar>(payment.getStartDate(), payment.getEndDate()));
+					RegisterPayments registerPayments = entry.getRegisterPayments();
+					if ((null != registerPayments) && (!registerPayments.isEmpty()))
+					{
+						List<PaymentEntry> lPayments = registerPayments.getPayments(payeeEntry);
+						for (PaymentEntry payment : lPayments)
+						{
+							lPeriods.add(new GenericDouble<Calendar, Calendar>(payment.getStartDate(), payment.getEndDate()));
+						}
+					}
 				}
 			}
 
 			Calendar endDate = ledgerDates.second;
-			RemoveEntry removePayeeEntry = Ledger.getRemovePayeeEntry(m_ledger.getEntries(), payeeEntry.getPayeeName());
+			RemoveEntry removePayeeEntry = m_ledger.getRemovePayeeEntry(payeeEntry);
 			if (null != removePayeeEntry)
 			{
 				endDate = removePayeeEntry.getDate();
@@ -69,57 +78,51 @@ public class CoverageReport
 			String strCoverage = Coverage.toString(lCoverage, iIndent + 2);
 			if (StringUtil.isDefined(strCoverage))
 			{
-				sb.append(StringUtil.getIndent(iIndent + 1)).append("Service Coverage: ").append(payeeEntry.getPayeeName()).append("\n");
+				sb.append(StringUtil.getSpaces(iIndent + 1)).append("Service Coverage: ").append(payeeEntry.getPayeeName()).append("\n");
 				sb.append(strCoverage);
 			}
 		}
 		
 		// Gather Active Tenant Coverage
-		List<LedgerEntry> lLedgerEntries = m_ledger.getLedgerEntries();
-		if (0 < lLedgerEntries.size())
+		List<LedgerEntry> ledgerEntries = m_ledger.getLedgerEntries();
+		if ((null != ledgerEntries) && (!ledgerEntries.isEmpty()))
 		{
-			LedgerEntry root = lLedgerEntries.get(0);
-			List<GenericTriple<Calendar, Calendar, Integer>> lActiveTenantPeriods = new ArrayList<GenericTriple<Calendar, Calendar, Integer>>();
-			ActiveTenantsVisitor currentVisitor = (ActiveTenantsVisitor)root.getVisitor(ActiveTenantsVisitor.class);
-			ActiveTenantsVisitor startPeriodVisitor = currentVisitor;
-			ActiveTenantsVisitor endPeriodVisitor = currentVisitor;
-			int iTenantCount = currentVisitor.getActiveTenantCount();
-			while (null != currentVisitor)
+			List<GenericTriple<Calendar, Calendar, Integer>> lPeriods = new ArrayList<GenericTriple<Calendar, Calendar, Integer>>();
+			Calendar startPeriod = null;
+			Calendar endPeriod = null;
+			Integer tenantCount = null; 
+			for (LedgerEntry entry : ledgerEntries)
 			{
-				currentVisitor = (ActiveTenantsVisitor)currentVisitor.getNextVisitor();
-				if ((null == currentVisitor) || (iTenantCount != currentVisitor.getActiveTenantCount()))
+				int iTenantCount = 0;
+				if (null != entry.getActiveTenants())
 				{
-					// To avoid time gaps between changes in active tenant counts:
-					// - If the end date is the day before the current visitor date, then
-					// all is well.
-					// - If there is a gap between the end date and the current visitor date,
-					// then the day before the current visitor date should be used.
-					Calendar endDate = endPeriodVisitor.getCurrentLedgerEntry().getDate();
-					if (null != currentVisitor)
-					{
-						if (!DateUtil.sequentialDays(endPeriodVisitor.getCurrentLedgerEntry().getDate(), currentVisitor.getCurrentLedgerEntry().getDate()))
-						{
-							endDate = DateUtil.getPreviousDay(currentVisitor.getCurrentLedgerEntry().getDate());
-						}
-					}
-					lActiveTenantPeriods.add(new GenericTriple<Calendar, Calendar, Integer>(startPeriodVisitor.getCurrentLedgerEntry().getDate(),
-																				   endDate,
-																				   endPeriodVisitor.getActiveTenantCount()));
-					if (null != currentVisitor)
-					{
-						startPeriodVisitor = currentVisitor;
-						iTenantCount = startPeriodVisitor.getActiveTenantCount();
-					}
+					iTenantCount = entry.getActiveTenants().size();
 				}
-				endPeriodVisitor = currentVisitor;
+				if ((null == startPeriod) && (null == endPeriod) && (null == tenantCount))
+				{	// First entry
+					startPeriod = entry.getDate();
+					endPeriod = entry.getDate();
+					tenantCount = new Integer(entry.getActiveTenants().size());
+				}
+				else if (iTenantCount == tenantCount.intValue())
+				{
+					endPeriod = entry.getDate();
+				}
+				else if (iTenantCount != tenantCount.intValue())
+				{
+					lPeriods.add(new GenericTriple<Calendar, Calendar, Integer>(startPeriod, endPeriod, tenantCount));
+					tenantCount = Integer.valueOf(iTenantCount);
+					startPeriod = entry.getDate();
+					endPeriod = entry.getDate();
+				}
 			}
-			
-			sb.append(StringUtil.getIndent(iIndent + 1)).append("Active Tenants Coverage:\n");
-			for (GenericTriple<Calendar, Calendar, Integer> period : lActiveTenantPeriods)
+			sb.append(StringUtil.getSpaces(iIndent + 1)).append("Active Tenants Coverage:\n");
+			for (GenericTriple<Calendar, Calendar, Integer> period : lPeriods)
 			{
-				sb.append(StringUtil.getIndent(iIndent + 2)).append(Entry.toString(period.first)).append(" -- ").append(Entry.toString(period.second)).append(": Active Tenants: ").append(period.third.intValue()).append("\n");
+				sb.append(StringUtil.getSpaces(iIndent + 2)).append(RegisterBaseEntry.toString(period.first)).append(" - ").append(RegisterBaseEntry.toString(period.second)).append(": Active Tenants: ").append(period.third.intValue()).append("\n");
 			}
 		}
+
 		return sb.toString();
 	}
 	
