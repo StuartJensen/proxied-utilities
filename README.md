@@ -36,7 +36,7 @@ A proxied utilities ledger file must be created/maintained by the landlord and t
 11/05/2016, REMOVE, Donald Duck
 11/18/2016, PAYMENT, Outland Electric, 66.23, 10/13/2016, 11/09/2016
 </pre>
-<b>A sample executable command line to get a ledger report for Domald Duck:</b>
+<b>A sample executable command line to get a ledger report for Donald Duck:</b>
 <pre>
 java -jar ProxiedUtilities.jar -inFile UtilityLedger.txt -outFile ReportTenantDonaldDuck.txt -report ledger -target "Donald Duck"
 
